@@ -1,0 +1,11 @@
+node_modules/
+dist/
+
+# Zeitdaten und Sicherungen gehören niemals ins Repository
+times.json
+times.json.alt
+times.backup-*.json
+
+shot-*.png
+screenshot-*.png
+*.log

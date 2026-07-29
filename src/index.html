@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>Stempeluhr</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>🕒 Stempeluhr</h1>
+    <nav class="nav">
+      <button class="nav-btn active" data-view="erfassung">Erfassung</button>
+      <button class="nav-btn" data-view="dashboard">Dashboard</button>
+      <button class="nav-btn" data-view="projekte">Projekte</button>
+      <button class="nav-btn" data-view="logs">Logs</button>
+      <button class="nav-btn" data-view="settings">Einstellungen</button>
+    </nav>
+    <div id="clock" class="liveclock">--:--:--</div>
+  </header>
+
+  <main>
+    <!-- ============ VIEW: ERFASSUNG ============ -->
+    <div id="view-erfassung" class="view">
+      <section class="card status-card">
+        <div class="status-row">
+          <span id="statusDot" class="dot dot-off"></span>
+          <span id="statusText" class="status-text">Nicht eingestempelt</span>
+        </div>
+        <div class="worktime">
+          <div class="worktime-label">Heute gearbeitet (netto)</div>
+          <div id="workToday" class="worktime-value">00:00:00</div>
+        </div>
+        <div id="sessionInfo" class="session-info"></div>
+
+        <div class="project-pick">
+          <label for="activeProject">Projekt</label>
+          <select id="activeProject"></select>
+        </div>
+
+        <div class="buttons">
+          <button id="btnIn" class="btn btn-green">Kommen</button>
+          <button id="btnBreakStart" class="btn btn-amber">Pause starten</button>
+          <button id="btnBreakEnd" class="btn btn-amber">Pause beenden</button>
+          <button id="btnOut" class="btn btn-red">Gehen</button>
+        </div>
+        <div id="message" class="message"></div>
+      </section>
+
+      <section class="card">
+        <div class="report-head">
+          <h2>Auswertung</h2>
+          <div class="report-controls">
+            <label>Monat:
+              <select id="monthSelect"></select>
+            </label>
+            <label>Projekt:
+              <select id="reportProject"></select>
+            </label>
+            <button id="btnAdd" class="btn btn-ghost">+ Zeit nachtragen</button>
+            <button id="btnExport" class="btn btn-ghost">CSV exportieren</button>
+            <button id="btnPrint" class="btn btn-ghost">Drucken / PDF</button>
+          </div>
+        </div>
+
+        <div class="summary">
+          <div class="summary-item">
+            <span class="summary-label">Summe Monat (netto)</span>
+            <span id="sumMonth" class="summary-big">00:00</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Arbeitstage</span>
+            <span id="daysMonth" class="summary-big">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Summe Pausen</span>
+            <span id="breakMonth" class="summary-big">00:00</span>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table id="report">
+            <thead>
+              <tr>
+                <th>Datum</th><th>Projekt</th><th>Kommen</th><th>Gehen</th>
+                <th>Pausen</th><th>Netto</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="reportBody"></tbody>
+          </table>
+        </div>
+        <p class="hint">Tipp: Auf eine Tageszeile klicken, um Datum, Zeiten und Pausen zu bearbeiten.
+          Über das Datumsfeld eines Blocks lässt sich der Eintrag auf einen anderen Tag verschieben.</p>
+      </section>
+    </div>
+
+    <!-- ============ VIEW: DASHBOARD ============ -->
+    <div id="view-dashboard" class="view" hidden>
+      <section class="card">
+        <div class="report-head">
+          <h2>Dashboard</h2>
+          <div class="report-controls">
+            <label>Monat:
+              <select id="dashMonth"></select>
+            </label>
+            <label>Projekt:
+              <select id="dashProject"></select>
+            </label>
+          </div>
+        </div>
+        <div id="dashKpis" class="summary summary-4"></div>
+      </section>
+
+      <section class="card">
+        <h2>Stunden je Projekt (Monat)</h2>
+        <div id="chartProjects" class="chart"></div>
+        <div class="chart-legend">Netto-Arbeitszeit pro Projekt im gewählten Monat (alle Projekte).</div>
+      </section>
+
+      <section class="card">
+        <h2>Umsatz je Projekt (Monat)</h2>
+        <div id="chartRevenue" class="chart"></div>
+        <div class="chart-legend">Betrag = Netto-Stunden × Stundensatz · <strong id="revenueTotal"></strong></div>
+      </section>
+
+      <section class="card">
+        <h2>Netto-Stunden pro Tag</h2>
+        <div id="chartDays" class="chart"></div>
+        <div class="chart-legend"><span class="swatch"></span> gestrichelt = Tagessoll · grüne Balken = Soll erreicht</div>
+      </section>
+
+      <section class="card">
+        <h2>Monatsvergleich</h2>
+        <div id="chartMonths" class="chart"></div>
+      </section>
+    </div>
+
+    <!-- ============ VIEW: PROJEKTE ============ -->
+    <div id="view-projekte" class="view" hidden>
+      <section class="card">
+        <h2>Projekte</h2>
+        <div class="project-add">
+          <input type="text" id="newProjectName" placeholder="Neues Projekt…" maxlength="60" />
+          <input type="number" id="newProjectRate" class="rate-input" placeholder="€/h" min="0" step="0.5" />
+          <button id="btnAddProject" class="btn btn-green">+ Projekt anlegen</button>
+        </div>
+        <div id="projMsg" class="message"></div>
+        <div class="table-wrap">
+          <table id="projectTable">
+            <thead>
+              <tr><th>Projekt</th><th>Satz (€/h)</th><th>Status</th><th>Einträge</th>
+                <th>Stunden</th><th>Betrag</th><th></th></tr>
+            </thead>
+            <tbody id="projectBody"></tbody>
+          </table>
+        </div>
+        <p class="hint">„Export" schreibt alle Zeiten eines Projekts über alle Monate in eine CSV-Datei –
+          mit Pausen, Netto-Stunden, Beträgen und Monatssummen.
+          Satz <strong>0 €/h</strong> = ohne Entlohnung. „Abschließen" beendet ein Projekt –
+          es ist dann in der Erfassung nicht mehr wählbar, bleibt aber in den Auswertungen.
+          Über „Öffnen" kannst du es wieder aktivieren. Ein Projekt mit Einträgen lässt sich nur
+          löschen, wenn du die Zeiten auf ein anderes Projekt umbuchst.</p>
+      </section>
+    </div>
+
+    <!-- ============ VIEW: LOGS ============ -->
+    <div id="view-logs" class="view" hidden>
+      <section class="card">
+        <div class="report-head">
+          <h2>Änderungsprotokoll</h2>
+          <div class="report-controls">
+            <button id="btnClearLogs" class="btn btn-ghost">Protokoll leeren</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="logTable">
+            <thead>
+              <tr><th>Zeitpunkt</th><th>Aktion</th><th>Details</th></tr>
+            </thead>
+            <tbody id="logBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ VIEW: EINSTELLUNGEN ============ -->
+    <div id="view-settings" class="view" hidden>
+      <section class="card">
+        <h2>Einstellungen</h2>
+        <div class="settings-grid">
+          <label class="field">
+            <span>Soll-Stunden pro Tag</span>
+            <input type="time" id="setTarget" />
+          </label>
+          <label class="field">
+            <span>Arbeitstage pro Woche</span>
+            <input type="number" id="setDays" min="1" max="7" step="1" />
+          </label>
+          <label class="field">
+            <span>Zeiten runden (Anzeige)</span>
+            <select id="setRound">
+              <option value="0">aus</option>
+              <option value="5">auf 5 Minuten</option>
+              <option value="15">auf 15 Minuten</option>
+              <option value="30">auf 30 Minuten</option>
+            </select>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button id="setSave" class="btn btn-green">Speichern</button>
+        </div>
+        <div id="setMsg" class="message"></div>
+        <p class="hint">Das Tagessoll und die Arbeitstage fließen in den Soll/Ist-Saldo im Dashboard ein.
+          „Runden" betrifft nur die Anzeige der Netto-Zeiten, nicht die gespeicherten Daten.</p>
+      </section>
+
+      <section class="card">
+        <h2>Updates</h2>
+        <div class="update-row">
+          <div>
+            <div class="update-version">Installierte Version: <strong id="appVersion">–</strong></div>
+            <div id="updateStatus" class="update-status">Noch nicht nach Updates gesucht.</div>
+          </div>
+          <div class="update-actions">
+            <button id="btnCheckUpdate" class="btn btn-ghost">Nach Updates suchen</button>
+            <button id="btnInstallUpdate" class="btn btn-green" hidden>Jetzt neu starten &amp; installieren</button>
+          </div>
+        </div>
+        <div id="updateBar" class="update-bar" hidden><div id="updateBarFill" class="update-bar-fill"></div></div>
+        <p class="hint">Die Stempeluhr sucht beim Start automatisch nach einer neueren Version und lädt sie
+          im Hintergrund. Deine erfassten Zeiten werden dabei <strong>nicht angefasst</strong> – sie liegen
+          außerhalb des Programmordners.</p>
+      </section>
+
+      <section class="card">
+        <h2>Datenspeicher</h2>
+        <div class="update-row">
+          <div>
+            <div class="update-status">Deine Zeiten liegen in:</div>
+            <code id="dataPath" class="data-path">–</code>
+          </div>
+          <div class="update-actions">
+            <button id="btnOpenData" class="btn btn-ghost">Ordner öffnen</button>
+          </div>
+        </div>
+        <p class="hint">Diese Datei enthält alle Zeiten, Projekte und Einstellungen. Sichere sie regelmäßig –
+          eine Kopie der Datei genügt als vollständiges Backup.</p>
+      </section>
+    </div>
+  </main>
+
+  <!-- Detail-/Bearbeiten-Modal für einen Tag -->
+  <div id="modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <h3 id="modalTitle">Tag</h3>
+        <button id="modalClose" class="modal-close" title="Schließen">✕</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Projekt löschen: Zeiten auf ein anderes Projekt umbuchen -->
+  <div id="reassignModal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <h3>Projekt löschen</h3>
+        <button id="reassignClose" class="modal-close" title="Schließen">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="reassignText" class="hint"></p>
+        <label class="field">
+          <span>Zeiten umbuchen auf</span>
+          <select id="reassignTarget"></select>
+        </label>
+        <div id="reassignMsg" class="message"></div>
+        <div class="form-actions">
+          <button id="reassignCancel" class="btn btn-ghost" type="button">Abbrechen</button>
+          <button id="reassignOk" class="btn btn-red" type="button">Umbuchen &amp; löschen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formular: vergangene Zeit nachtragen -->
+  <div id="formModal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <h3>Zeit nachtragen</h3>
+        <button id="formClose" class="modal-close" title="Schließen">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <label class="field"><span>Datum</span><input type="date" id="fDate" /></label>
+          <label class="field"><span>Projekt</span><select id="fProject"></select></label>
+          <label class="field"><span>Kommen</span><input type="time" id="fIn" /></label>
+          <label class="field"><span>Gehen</span><input type="time" id="fOut" /></label>
+        </div>
+        <div class="form-breaks">
+          <div class="form-breaks-head">
+            <span>Pausen (optional)</span>
+            <button id="fAddBreak" class="btn btn-ghost btn-small" type="button">+ Pause</button>
+          </div>
+          <div id="fBreaks"></div>
+        </div>
+        <div id="formMsg" class="message"></div>
+        <div class="form-actions">
+          <button id="formCancel" class="btn btn-ghost" type="button">Abbrechen</button>
+          <button id="formSave" class="btn btn-green" type="button">Speichern</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
