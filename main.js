@@ -221,7 +221,7 @@ app.on('window-all-closed', () => {
 // Macht aus einem Vorschlagsnamen (z. B. Projektname) einen gültigen Dateinamen.
 // Verhindert, dass Zeichen wie \ / : * ? " < > | aus dem Renderer einen Pfad
 // erzeugen oder den Speichern-Dialog abstürzen lassen.
-function safeFileName(name) {
+function safeFileName(name, ext = 'csv') {
   if (!name) return '';
   const bad = '\\/:*?"<>|';
   const clean = String(name)
@@ -232,11 +232,12 @@ function safeFileName(name) {
     .replace(/^[.\s]+|[.\s]+$/g, '')
     .slice(0, 120);
   if (!clean) return '';
-  const base = clean.toLowerCase().endsWith('.csv') ? clean.slice(0, -4) : clean;
+  const suffix = '.' + ext;
+  const base = clean.toLowerCase().endsWith(suffix) ? clean.slice(0, -suffix.length) : clean;
   // Reservierte Gerätenamen: „nul.csv" ließe sich scheinbar speichern,
   // die Datei existiert danach aber nicht.
   const safe = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(base.trim()) ? '_' + base : base;
-  return safe + '.csv';
+  return safe + suffix;
 }
 
 // ---- IPC: wrappt die Datenschicht und gibt Erfolg/Fehler zurück ----
@@ -309,6 +310,36 @@ ipcMain.handle('dataInfo', () => wrap(() => ({
   version: app.getVersion(),
 })));
 ipcMain.handle('openDataFolder', () => wrap(() => { shell.openPath(dataDirPath); return true; }));
+
+// PDF direkt erzeugen, statt über den Windows-Druckdialog zu gehen.
+// window.print() setzt einen installierten Drucker voraus und tut sonst nichts;
+// printToPDF funktioniert immer und nutzt dasselbe Druck-Layout (@media print).
+ipcMain.handle('exportPdf', async (_e, defaultName) => {
+  const fallback = `stempeluhr-${new Date().toISOString().slice(0, 10)}.pdf`;
+  const res = await dialog.showSaveDialog(mainWindow, {
+    title: 'Als PDF speichern',
+    defaultPath: safeFileName(defaultName, 'pdf') || fallback,
+    filters: [{ name: 'PDF', extensions: ['pdf'] }],
+  });
+  if (res.canceled || !res.filePath) return { ok: false, error: 'Abgebrochen' };
+  try {
+    const data = await mainWindow.webContents.printToPDF({
+      pageSize: 'A4',
+      printBackground: false,
+      margins: { top: 1, bottom: 1, left: 1, right: 1 },
+    });
+    fs.writeFileSync(res.filePath, data);
+    return { ok: true, data: res.filePath };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
+// Erzeugtes PDF im Standardprogramm öffnen
+ipcMain.handle('openPath', (_e, target) => wrap(() => {
+  shell.openPath(String(target));
+  return true;
+}));
 
 ipcMain.handle('exportCsv', async (_e, csv, defaultName) => {
   const fallback = `stempeluhr-export-${new Date().toISOString().slice(0, 10)}.csv`;

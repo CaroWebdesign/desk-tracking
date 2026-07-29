@@ -23,6 +23,8 @@ contextBridge.exposeInMainWorld('api', {
   updateSettings: (patch) => ipcRenderer.invoke('updateSettings', patch),
   clearLogs: () => ipcRenderer.invoke('clearLogs'),
   exportCsv: (csv, defaultName) => ipcRenderer.invoke('exportCsv', csv, defaultName),
+  exportPdf: (defaultName) => ipcRenderer.invoke('exportPdf', defaultName),
+  openPath: (target) => ipcRenderer.invoke('openPath', target),
   dataInfo: () => ipcRenderer.invoke('dataInfo'),
   openDataFolder: () => ipcRenderer.invoke('openDataFolder'),
 

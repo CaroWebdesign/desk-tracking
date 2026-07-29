@@ -1,119 +1,140 @@
 # 🕒 Stempeluhr
 
-Einfache Zeiterfassung als Windows-Desktop-App (Electron). Stempeln per Knopfdruck,
-Pausen werden automatisch abgezogen, Projekte mit Stundensatz, Monatsauswertung
-und Export inklusive. Alle Daten bleiben lokal auf dem Rechner.
+Zeiterfassung für Windows. Du drückst „Kommen", arbeitest, drückst „Gehen" — die App
+rechnet Pausen ab, ordnet die Zeit einem Projekt zu und erstellt daraus am Monatsende
+eine Aufstellung als CSV oder PDF.
 
-## Funktionen
-
-- **Kommen / Gehen** – Arbeitszeit per Knopfdruck erfassen; **beliebig oft pro Tag** ein- und ausstempeln
-- **Pausen** – Pause starten/beenden, **mehrfach pro Sitzung**; wird automatisch von der Netto-Arbeitszeit abgezogen
-- **Live-Anzeige** – heutige Arbeitszeit läuft sekundengenau mit
-- **Projekte** – jede Stempelung gehört zu einem Projekt, jedes Projekt hat einen **Stundensatz** (€/h; 0 = ohne Entlohnung). Projekte lassen sich **abschließen** und wieder öffnen
-- **Auswertung** – Monatsübersicht mit einem Eintrag pro Tag, Projekt-Filter und Summen
-- **Tagesdetails & Bearbeiten** – Klick auf eine Tageszeile öffnet ein Fenster, in dem sich **Datum, Kommen/Gehen, Projekt und Pausen** jedes Arbeitsblocks bearbeiten lassen. Über das Datumsfeld wandert ein Block auf einen anderen Tag – die Pausen wandern sekundengenau mit
-- **Zeit nachtragen** – vergangene, nicht gestempelte Zeiten manuell erfassen
-- **Dashboard** – Monats-Kennzahlen, Stunden und Umsatz je Projekt, Tagesbalken mit Soll-Linie, Soll/Ist-Saldo, Monatsvergleich
-- **Export**
-  - **pro Monat** (mit Projekt-Filter) aus der Auswertung
-  - **pro Projekt** – alle Zeiten über alle Monate, mit Pausen, Netto-Stunden, Beträgen und Monatssummen (Schaltfläche „Export" in der Projektzeile)
-  - beides als CSV (Excel-tauglich, mit BOM) oder als „Drucken / PDF"
-- **Automatische Updates** – die App prüft beim Start, ob eine neuere Version vorliegt, lädt sie im Hintergrund und installiert sie beim Beenden
-- **Änderungsprotokoll (Logs)** – jede Änderung wird mit Zeitpunkt protokolliert
-- **Einstellungen** – Soll-Stunden pro Tag, Arbeitstage pro Woche, Anzeige-Rundung (5/15/30 min)
-
-## Wo werden die Daten gespeichert?
-
-In **`Dokumente\Stempeluhr\times.json`**.
-
-Bewusst **außerhalb** des Programmordners: Der Windows-Installer räumt bei jedem
-Update den kompletten Installationsordner ab (`RMDir /r`). Alles, was dort liegt –
-auch eine Datendatei – wäre nach einem Update weg. Unter „Dokumente" überstehen
-die Zeiten Updates und sogar eine Deinstallation.
-
-Zusätzlich:
-
-- Beim Programmstart legt die App eine Sicherung `times.backup-JJJJ-MM-TT.json` an
-  (die letzten acht bleiben erhalten), vor jedem Update eine weitere mit Uhrzeit.
-- Ist die Datei beschädigt oder nicht lesbar, **startet die App bewusst nicht** und
-  meldet das, statt mit leeren Daten weiterzulaufen und die Datei zu überschreiben.
-- Gespeichert wird immer erst in eine Nebendatei, die anschließend umbenannt wird –
-  ein Absturz mitten im Schreiben kann keine halbe Datei hinterlassen.
-- Der Speicherort steht in den **Einstellungen** und lässt sich dort direkt öffnen.
-
-Zum Sichern genügt eine Kopie der `times.json` – sie enthält Zeiten, Projekte,
-Einstellungen und das Protokoll.
-
-### Umstieg von Version 1.1.0 oder älter
-
-Bis 1.1.0 lag die `times.json` im Programmordner. Beim Update auf 1.2.0 wird sie
-automatisch nach `Dokumente\Stempeluhr` übernommen – doppelt abgesichert: einmal
-durch den Installer, bevor er den alten Ordner leert, und einmal beim ersten Start
-der neuen Version. Eine bereits vorhandene Datei am Zielort wird dabei **nie**
-überschrieben.
+Alles bleibt auf deinem Rechner: keine Cloud, kein Konto, keine Anmeldung.
 
 ## Installieren
 
-Neueste Version herunterladen: **[Releases](https://github.com/CaroWebdesign/desk-tracking/releases)** →
-`Stempeluhr-Setup-<version>.exe` ausführen.
+Lade die neueste `Stempeluhr-Setup-<version>.exe` von der
+[Releases-Seite](https://github.com/CaroWebdesign/desk-tracking/releases) und führe sie aus.
 
-Es ist ein benutzerbezogener Installer (kein Admin nötig): installiert nach
-`%LOCALAPPDATA%\Programs\Stempeluhr`, legt Desktop- und Startmenü-Verknüpfung an
-und startet danach sofort.
+Die Installation braucht **keine Administratorrechte**. Sie legt Verknüpfungen auf dem
+Desktop und im Startmenü an und startet die App danach sofort.
 
-> Da die App nicht mit einem kostenpflichtigen Zertifikat signiert ist, zeigt
-> Windows beim **ersten** Download „Der Computer wurde durch Windows geschützt" →
-> *Weitere Informationen* → *Trotzdem ausführen*. Spätere automatische Updates
-> laufen ohne diese Meldung.
+> **Windows zeigt eine blaue Warnung?** „Der Computer wurde durch Windows geschützt" —
+> das erscheint bei jedem Programm ohne gekauftes Signatur-Zertifikat, auch bei diesem.
+> Klicke auf *Weitere Informationen* und dann auf *Trotzdem ausführen*.
+> Bei späteren Updates kommt die Meldung nicht mehr.
 
-## Aus dem Quellcode starten (Entwicklung)
+## So arbeitest du damit
+
+Oben wählst du das Projekt, dann drückst du **Kommen**. Die Uhr läuft mit, du siehst
+jederzeit, wie lange du heute schon gearbeitet hast. Für eine Mittagspause drückst du
+**Pause starten** und danach **Pause beenden** — die Zeit wird automatisch abgezogen.
+Am Ende **Gehen**.
+
+Du kannst mehrmals am Tag ein- und ausstempeln, etwa vormittags für einen Kunden und
+abends für einen anderen. Jeder dieser Abschnitte ist ein eigener **Block**.
+
+**Etwas vergessen oder falsch gestempelt?** Klicke in der Auswertung auf die Tageszeile.
+Dort lassen sich Datum, Kommen, Gehen, Projekt und Pausen jedes Blocks ändern, Blöcke
+hinzufügen oder löschen. Über das Datumsfeld verschiebst du einen Block auf einen anderen
+Tag, falls du dich im Datum vertan hast.
+
+Für Zeiten, die du gar nicht gestempelt hast, gibt es **+ Zeit nachtragen**.
+
+### Projekte und Abrechnung
+
+Jedes Projekt hat einen Stundensatz. Trägst du dort `0` ein, gilt das Projekt als nicht
+abgerechnet — es taucht in den Stunden auf, aber ohne Betrag. Sobald ein Auftrag fertig
+ist, klickst du auf **Abschließen**: Das Projekt verschwindet aus der Auswahl beim
+Stempeln, bleibt aber in allen Auswertungen sichtbar. Über **Öffnen** holst du es zurück.
+
+### Auswerten und exportieren
+
+Die **Auswertung** zeigt dir jeden Tag des gewählten Monats mit Kommen, Gehen, Pausen und
+Netto-Zeit. Das **Dashboard** ergänzt Kennzahlen: Stunden und Umsatz pro Projekt,
+Soll/Ist-Saldo, Vergleich mit den Vormonaten.
+
+Zum Exportieren gibt es drei Wege:
+
+| Was | Wo | Inhalt |
+|-----|-----|--------|
+| **CSV exportieren** | Auswertung | Der gewählte Monat: jeder Block einzeln, darunter die Tagessummen |
+| **Als PDF speichern** | Auswertung | Dieselbe Tabelle als PDF, zum Verschicken oder Ablegen |
+| **Export** | Projekte, je Zeile | Ein einzelnes Projekt komplett: alle Monate, mit Pausen, Beträgen und Monatssummen |
+
+Die CSV-Dateien öffnen sich in Excel mit korrekten Umlauten; Beträge und Stunden stehen
+mit deutschem Komma drin und lassen sich direkt weiterrechnen.
+
+## Wo deine Zeiten gespeichert sind
+
+In einer einzigen Datei:
+
+```
+Dokumente\Stempeluhr\times.json
+```
+
+Diesen Ordner öffnest du direkt aus der App über **Einstellungen → Datenspeicher →
+Ordner öffnen**. Eine Kopie dieser Datei ist ein vollständiges Backup — sie enthält
+Zeiten, Projekte, Einstellungen und das Änderungsprotokoll.
+
+Die Datei liegt bewusst nicht im Programmordner. Der Windows-Installer leert diesen
+Ordner bei jedem Update vollständig; alles, was dort liegt, wäre danach weg. Unter
+„Dokumente" überstehen deine Zeiten Updates und selbst eine Deinstallation.
+
+Zusätzlich schützt die App die Daten von sich aus:
+
+- Bei jedem Start legt sie eine Sicherung `times.backup-JJJJ-MM-TT.json` an; die letzten
+  acht bleiben liegen. Vor jedem Update kommt eine weitere dazu.
+- Beim Speichern schreibt sie erst eine Nebendatei und benennt sie dann um. Stürzt der
+  Rechner mitten im Speichern ab, bleibt die alte Datei unbeschädigt.
+- Lässt sich die Datei nicht lesen, weil sie beschädigt ist, **startet die App bewusst
+  nicht**. Sie sagt dir, was los ist, und öffnet den Ordner mit den Sicherungen. So kann
+  sie deine Zeiten nicht versehentlich mit einem leeren Stand überschreiben.
+- Die App läuft nur einmal gleichzeitig. Zwei offene Fenster würden sich sonst
+  gegenseitig überschreiben.
+
+Ist etwas kaputt gegangen: Benenne eine der `times.backup-…json` in `times.json` um,
+und der Stand von damals ist wieder da.
+
+## Updates
+
+Die App prüft bei jedem Start, ob es eine neuere Version gibt, lädt sie im Hintergrund
+und installiert sie, sobald du das Programm schließt. Du musst nichts weiter tun.
+
+Unter **Einstellungen → Updates** siehst du deine Version, kannst von Hand nach Updates
+suchen und ein geladenes Update sofort einspielen.
+
+Deine erfassten Zeiten bleiben dabei unangetastet.
+
+## Für Entwickler
 
 ```powershell
 npm install
-npm start        # App starten
+npm start        # App im Entwicklungsmodus starten
 npm test         # Logiktests der Datenschicht
 ```
 
-## Neue Version veröffentlichen
+Electron mit `contextIsolation`, ohne `nodeIntegration`; die Oberfläche spricht
+ausschließlich über eine schmale Bridge in `preload.js` mit dem Hauptprozess.
+Gespeichert wird in JSON — bewusst keine native Datenbank, damit der Build ohne
+Compiler-Toolchain auskommt.
 
-1. `version` in der `package.json` erhöhen (z. B. `1.2.1`).
-2. Persönliches GitHub-Token mit `repo`-Rechten setzen und bauen:
+| Datei | Zweck |
+|-------|-------|
+| `main.js` | Hauptprozess: Fenster, IPC, Datenordner, Sicherungen, Updater |
+| `preload.js` | Bridge zwischen Oberfläche und Hauptprozess |
+| `store.js` | Datenschicht: Stempel- und Editier-Logik, Projekte, Protokoll |
+| `src/` | Oberfläche (`index.html`, `styles.css`, `renderer.js`) |
+| `build/installer.nsh` | Installer-Hook, der Altdaten aus dem Programmordner rettet |
+| `test-store.js` | Tests der Datenschicht (`npm test`) |
 
-   ```powershell
-   $env:GH_TOKEN = "<dein-token>"
-   npm run release
-   ```
+Beim Ändern der Datenschicht gilt: `store.js` kennt kein Electron und ist damit ohne
+GUI testbar. `STEMPEL_DATA_DIR` überschreibt den Speicherort, etwa für Testläufe.
 
-   Das baut den Installer und lädt ihn als **veröffentlichtes** Release hoch.
-3. Fertig – installierte Stempeluhren finden die neue Version beim nächsten Start.
+## Gut zu wissen
 
-Falls von Hand hochgeladen wird, müssen **alle drei** Dateien aus `dist\` in
-dasselbe Release, unter unverändertem Namen:
-`Stempeluhr-Setup-<version>.exe`, `latest.yml` und die `.blockmap`-Datei.
-Ohne `latest.yml` findet die App kein Update. Das Release darf **kein Entwurf**
-(Draft) sein, sonst ist es für die App unsichtbar.
+Es kann immer nur eine Sitzung gleichzeitig laufen; beim „Gehen" wird eine noch offene
+Pause automatisch mitbeendet. Nur der heutige Tag kann eine laufende Sitzung haben —
+ältere Einträge lassen sich nicht wieder öffnen, sonst würde die Arbeitszeit ins
+Unendliche weiterlaufen.
 
-## Projektstruktur
+Ein Block liegt immer innerhalb eines Kalendertages. Arbeitest du über Mitternacht,
+erfasst du das als zwei Blöcke.
 
-| Datei                  | Zweck                                                        |
-|------------------------|--------------------------------------------------------------|
-| `main.js`              | Hauptprozess: Fenster, IPC, Datenordner, Sicherungen, Updater |
-| `preload.js`           | Sichere Brücke zwischen Oberfläche und Hauptprozess           |
-| `store.js`             | Datenschicht (laden/speichern, Stempel-/Edit-Logik, Projekte, Logs) |
-| `src/index.html`       | Oberfläche                                                    |
-| `src/styles.css`       | Gestaltung (inkl. Druck-Layout)                               |
-| `src/renderer.js`      | Logik der Oberfläche, Auswertung, CSV-Export                  |
-| `build/installer.nsh`  | Installer-Hook, der Altdaten aus dem Programmordner rettet     |
-| `build-icon.js`        | Erzeugt `icon.ico` / `icon.png`                               |
-| `test-store.js`        | Logiktests der Datenschicht (`npm test`)                      |
-
-## Hinweise
-
-- Es kann immer nur **eine** Sitzung gleichzeitig laufen; beim „Gehen" wird eine
-  noch laufende Pause automatisch mitbeendet.
-- Nur der heutige Tag kann eine laufende Sitzung haben – ältere Einträge lassen
-  sich nicht wieder „öffnen".
-- Ein Arbeitsblock liegt immer innerhalb eines Kalendertages; Schichten über
-  Mitternacht werden als zwei Blöcke erfasst.
-- Die App läuft nur einmal gleichzeitig – ein zweiter Start holt das vorhandene
-  Fenster nach vorn, damit sich zwei Fenster nicht gegenseitig überschreiben.
+Die Rundung in den Einstellungen betrifft nur die Anzeige. Gespeichert bleiben immer die
+exakten Zeiten, sodass du die Rundung jederzeit ändern kannst, ohne Daten zu verlieren.

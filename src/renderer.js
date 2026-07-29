@@ -195,9 +195,10 @@ function dailyRows(monthKey, projectId) {
     if (projectId && s.projectId !== projectId) continue;
     const d = (days[s.date] = days[s.date] || {
       date: s.date, firstIn: null, lastOut: null, breakMs: 0, netMs: 0, amount: 0, hasOpen: false,
-      projectIds: new Set(),
+      projectIds: new Set(), blocks: [],
     });
     d.projectIds.add(s.projectId);
+    d.blocks.push({ in: s.clockIn, out: s.clockOut });
     d.amount += sessionAmount(s, now);
     const inMs = new Date(s.clockIn).getTime();
     if (d.firstIn === null || inMs < d.firstIn) d.firstIn = inMs;
@@ -207,6 +208,9 @@ function dailyRows(monthKey, projectId) {
     } else d.hasOpen = true;
     d.breakMs += sessionBreakMs(s, now);
     d.netMs += sessionNetMs(s, now);
+  }
+  for (const d of Object.values(days)) {
+    d.blocks.sort((a, b) => new Date(a.in) - new Date(b.in));
   }
   return Object.values(days).sort((a, b) => b.date.localeCompare(a.date));
 }
@@ -221,16 +225,20 @@ function renderReport() {
   for (const r of rows) {
     sumNet += roundMs(r.netMs);
     sumBreak += r.breakMs;
-    const blocks = state.sessions
-      .filter((s) => s.date === r.date && (!projectId || s.projectId === projectId)).length;
+    const blocks = r.blocks.length;
     const projs = [...r.projectIds].map(projectName).join(', ');
+    // Bei mehreren Blöcken am Tag alle Zeiten zeigen – sonst sieht es aus,
+    // als wäre durchgehend von der ersten bis zur letzten Stempelung gearbeitet worden.
+    const inList = r.blocks.map((b) => toHM(b.in)).join('<br>');
+    const outList = r.blocks
+      .map((b) => (b.out ? toHM(b.out) : '<em>läuft…</em>')).join('<br>');
     const tr = document.createElement('tr');
     tr.dataset.day = r.date;
     tr.innerHTML = `
       <td>${fmtDate(r.date)} <span class="block-span">· ${blocks}×</span></td>
       <td>${escapeHtml(projs)}</td>
-      <td>${toHM(new Date(r.firstIn).toISOString())}</td>
-      <td>${r.hasOpen ? '<em>läuft…</em>' : toHM(new Date(r.lastOut).toISOString())}</td>
+      <td>${inList}</td>
+      <td>${outList}</td>
       <td>${fmtHM(r.breakMs)}</td>
       <td class="col-net">${fmtNet(r.netMs)}</td>
       <td><button class="del-btn" data-day="${r.date}" title="Tag löschen">✕</button></td>`;
@@ -952,24 +960,57 @@ async function onExportProject(projectId) {
   else if (res.error !== 'Abgebrochen') projMsg(res.error, 'error');
 }
 
+// Monats-CSV: eine Zeile je Arbeitsblock (nicht je Tag) – wer zweimal am Tag
+// stempelt, soll auch beide Zeiten sehen. Darunter zusätzlich die Tagessummen.
 function buildCsv() {
   const monthKey = $('monthSelect').value;
   const projectId = $('reportProject').value;
-  const rows = dailyRows(monthKey, projectId);
-  const lines = ['Datum;Projekt;Kommen;Gehen;Pausen (h:m);Netto (h:m);Betrag (EUR)'];
-  for (const r of [...rows].reverse()) {
+  const now = Date.now();
+  const sessions = state.sessions
+    .filter((s) => s.date.slice(0, 7) === monthKey && (!projectId || s.projectId === projectId))
+    .sort((a, b) => new Date(a.clockIn) - new Date(b.clockIn));
+
+  const lines = [];
+  lines.push(csvRow(['Monat', monthLabel(monthKey)]));
+  lines.push(csvRow(['Projekt', projectId ? projectName(projectId) : 'Alle Projekte']));
+  lines.push(csvRow(['Exportiert am', fmtTs(new Date().toISOString())]));
+  lines.push('');
+  lines.push(csvRow(['Datum', 'Projekt', 'Kommen', 'Gehen', 'Pausen (h:m)', 'Pausen (Zeiten)',
+    'Netto (h:m)', 'Netto (h)', 'Betrag (EUR)']));
+
+  let sumNet = 0, sumBreak = 0, sumAmount = 0;
+  for (const s of sessions) {
+    const net = roundMs(sessionNetMs(s, now));
+    const brk = sessionBreakMs(s, now);
+    const amount = roundEur(sessionAmount(s, now));
+    sumNet += net; sumBreak += brk; sumAmount += amount;
+    const breakTimes = s.breaks.map((b) => `${toHM(b.start)}-${b.end ? toHM(b.end) : 'offen'}`).join(' / ');
     lines.push(csvRow([
-      fmtDate(r.date), [...r.projectIds].map(projectName).join(' / '),
-      toHM(new Date(r.firstIn).toISOString()),
-      r.hasOpen ? 'laeuft' : toHM(new Date(r.lastOut).toISOString()),
-      fmtHM(r.breakMs), fmtNet(r.netMs), eurCsv(roundEur(r.amount)),
+      fmtDate(s.date), projectName(s.projectId), toHM(s.clockIn),
+      s.clockOut ? toHM(s.clockOut) : 'laeuft',
+      fmtHM(brk), breakTimes, fmtHM(net), hoursCsv(net), eurCsv(amount),
     ]));
   }
-  const sumNet = rows.reduce((a, r) => a + roundMs(r.netMs), 0);
-  const sumBreak = rows.reduce((a, r) => a + r.breakMs, 0);
-  const sumAmount = rows.reduce((a, r) => a + roundEur(r.amount), 0);
+  if (sessions.length === 0) lines.push(csvRow(['Keine Einträge in diesem Monat.']));
+
   lines.push('');
-  lines.push(`Summe;;;;${fmtHM(sumBreak)};${fmtHM(sumNet)};${eurCsv(roundEur(sumAmount))}`);
+  lines.push(csvRow(['Gesamt', '', '', '', fmtHM(sumBreak), '', fmtHM(sumNet), hoursCsv(sumNet),
+    eurCsv(roundEur(sumAmount))]));
+
+  // Tagesübersicht: eine Zeile je Tag, wie in der Auswertung am Bildschirm
+  const rows = dailyRows(monthKey, projectId).sort((a, b) => a.date.localeCompare(b.date));
+  lines.push('');
+  lines.push(csvRow(['Summen je Tag']));
+  lines.push(csvRow(['Datum', 'Bloecke', 'Kommen', 'Gehen', 'Pausen (h:m)', 'Netto (h:m)',
+    'Netto (h)', 'Betrag (EUR)']));
+  for (const r of rows) {
+    lines.push(csvRow([
+      fmtDate(r.date), r.blocks.length,
+      r.blocks.map((b) => toHM(b.in)).join(' / '),
+      r.blocks.map((b) => (b.out ? toHM(b.out) : 'laeuft')).join(' / '),
+      fmtHM(r.breakMs), fmtNet(r.netMs), hoursCsv(roundMs(r.netMs)), eurCsv(roundEur(r.amount)),
+    ]));
+  }
   return lines.join('\r\n');
 }
 
@@ -989,6 +1030,17 @@ window.addEventListener('DOMContentLoaded', () => {
   $('monthSelect').addEventListener('change', renderReport);
   $('reportProject').addEventListener('change', renderReport);
   $('btnPrint').addEventListener('click', () => window.print());
+  $('btnPdf').addEventListener('click', async () => {
+    const monthKey = $('monthSelect').value;
+    const proj = $('reportProject').value ? '-' + projectName($('reportProject').value) : '';
+    showMessage('PDF wird erstellt …');
+    const res = await window.api.exportPdf(`stempeluhr-${monthKey}${proj}.pdf`);
+    if (res.ok) {
+      showMessage('PDF gespeichert: ' + res.data, 'ok');
+      window.api.openPath(res.data);
+    } else if (res.error !== 'Abgebrochen') showMessage(res.error, 'error');
+    else showMessage('');
+  });
   $('btnExport').addEventListener('click', async () => {
     const monthKey = $('monthSelect').value;
     const proj = $('reportProject').value ? '-' + projectName($('reportProject').value) : '';

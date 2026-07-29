@@ -6,6 +6,9 @@ times.json
 times.json.alt
 times.backup-*.json
 
+# Interne Anleitung – gehört nicht ins öffentliche Repository
+VEROEFFENTLICHEN.md
+
 shot-*.png
 screenshot-*.png
 *.log
