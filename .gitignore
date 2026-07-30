@@ -1,10 +1,12 @@
 node_modules/
 dist/
 
-# Zeitdaten und Sicherungen gehören niemals ins Repository
-times.json
-times.json.alt
-times.backup-*.json
+# Zeitdaten und Sicherungen gehören niemals ins Repository.
+# Bewusst ohne Endung im Muster: beim Umzug und bei Reparaturen entstehen
+# Kopien mit allen möglichen Endungen (times.uebernommen-….json,
+# times.json.alt, times.aus-programmordner.json). Ein Muster auf „.json"
+# ließe genau die durch, die keine solche Endung tragen.
+times*
 
 # Interne Anleitung – gehört nicht ins öffentliche Repository
 VEROEFFENTLICHEN.md

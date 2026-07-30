@@ -2,260 +2,684 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';" />
-  <title>Stempeluhr</title>
+  <!-- img-src erlaubt data: für die eingebetteten Symbole im Stylesheet
+       (Chevron der Auswahlfelder). Externe Quellen bleiben gesperrt. -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
+  <title>Desk Tracking</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
-  <header class="topbar">
-    <h1>🕒 Stempeluhr</h1>
-    <nav class="nav">
-      <button class="nav-btn active" data-view="erfassung">Erfassung</button>
-      <button class="nav-btn" data-view="dashboard">Dashboard</button>
-      <button class="nav-btn" data-view="projekte">Projekte</button>
-      <button class="nav-btn" data-view="logs">Logs</button>
-      <button class="nav-btn" data-view="settings">Einstellungen</button>
-    </nav>
-    <div id="clock" class="liveclock">--:--:--</div>
-  </header>
+<body data-theme="caro-dark">
 
-  <main>
-    <!-- ============ VIEW: ERFASSUNG ============ -->
-    <div id="view-erfassung" class="view">
-      <section class="card status-card">
-        <div class="status-row">
-          <span id="statusDot" class="dot dot-off"></span>
-          <span id="statusText" class="status-text">Nicht eingestempelt</span>
-        </div>
-        <div class="worktime">
-          <div class="worktime-label">Heute gearbeitet (netto)</div>
-          <div id="workToday" class="worktime-value">00:00:00</div>
-        </div>
-        <div id="sessionInfo" class="session-info"></div>
+  <!-- Icon-Sprite (Stroke 1.8, currentColor – wie im Caro-CI festgelegt) -->
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 15l3.5-4 3 3L21 7"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 8.9 19a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 5 8.9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9.6a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5Z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 4.5v15M15 4.5v15"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="5.5" y="5.5" width="13" height="13" rx="2"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M4 20h16"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/></symbol>
+    <symbol id="i-printer" viewBox="0 0 24 24"><path d="M7 9V3h10v6"/><path d="M7 19H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="7" y="15" width="10" height="6" rx="1"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></symbol>
+    <symbol id="i-folder-open" viewBox="0 0 24 24"><path d="M6 19h13l2.5-8H8.5L6 19Z"/><path d="M6 19H4a1 1 0 0 1-1-1V6a2 2 0 0 1 2-2h4l2 2.5h6a2 2 0 0 1 2 2V11"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="m14.5 5.5-7 6.5 7 6.5"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="m9.5 5.5 7 6.5-7 6.5"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5Z"/><path d="M8 9h8M8 13h8M8 17h5"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17Z"/><path d="m14.5 7.5 2.5 2.5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 6.5h16"/><path d="M9.5 6.5V4.8A1.3 1.3 0 0 1 10.8 3.5h2.4a1.3 1.3 0 0 1 1.3 1.3v1.7"/><path d="M6.5 6.5 7.4 19a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4l.9-12.5"/></symbol>
+    <symbol id="i-archive" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4.5" rx="1.2"/><path d="M5 8.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19V8.5"/><path d="M10 12.5h4"/></symbol>
+    <!-- Flaggen: bewusst als Formen gezeichnet. Emoji-Flaggen stellt Windows
+         nur als Buchstabenpaare dar, das sähe hier nicht wie eine Flagge aus. -->
+    <symbol id="f-de" viewBox="0 0 30 20" class="flag">
+      <rect width="30" height="20" fill="#000"/><rect y="6.67" width="30" height="6.67" fill="#dd0000"/>
+      <rect y="13.33" width="30" height="6.67" fill="#ffce00"/>
+    </symbol>
+    <symbol id="f-gb" viewBox="0 0 30 20" class="flag">
+      <rect width="30" height="20" fill="#012169"/>
+      <path d="M0 0l30 20M30 0L0 20" stroke="#fff" stroke-width="4"/>
+      <path d="M0 0l30 20M30 0L0 20" stroke="#c8102e" stroke-width="2"/>
+      <path d="M15 0v20M0 10h30" stroke="#fff" stroke-width="6.5"/>
+      <path d="M15 0v20M0 10h30" stroke="#c8102e" stroke-width="4"/>
+    </symbol>
+    <symbol id="f-fr" viewBox="0 0 30 20" class="flag">
+      <rect width="30" height="20" fill="#fff"/><rect width="10" height="20" fill="#002395"/>
+      <rect x="20" width="10" height="20" fill="#ed2939"/>
+    </symbol>
+    <symbol id="f-es" viewBox="0 0 30 20" class="flag">
+      <rect width="30" height="20" fill="#aa151b"/><rect y="5" width="30" height="10" fill="#f1bf00"/>
+    </symbol>
+    <symbol id="f-jp" viewBox="0 0 30 20" class="flag">
+      <rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="6" fill="#bc002d"/>
+    </symbol>
+    <symbol id="f-cn" viewBox="0 0 30 20" class="flag">
+      <rect width="30" height="20" fill="#de2910"/>
+      <path d="m6 3.2 1.05 3.23h3.4L7.7 8.43l1.05 3.23L6 9.66 3.25 11.66 4.3 8.43 1.55 6.43h3.4z" fill="#ffde00"/>
+      <circle cx="12.5" cy="3" r="1" fill="#ffde00"/><circle cx="15" cy="5.5" r="1" fill="#ffde00"/>
+      <circle cx="15" cy="9" r="1" fill="#ffde00"/><circle cx="12.5" cy="11.5" r="1" fill="#ffde00"/>
+    </symbol>
 
-        <div class="project-pick">
-          <label for="activeProject">Projekt</label>
-          <select id="activeProject"></select>
-        </div>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-13.7-5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 13.7 5L20 16"/><path d="M20 20v-4h-4"/></symbol>
+  </svg>
 
-        <div class="buttons">
-          <button id="btnIn" class="btn btn-green">Kommen</button>
-          <button id="btnBreakStart" class="btn btn-amber">Pause starten</button>
-          <button id="btnBreakEnd" class="btn btn-amber">Pause beenden</button>
-          <button id="btnOut" class="btn btn-red">Gehen</button>
-        </div>
-        <div id="message" class="message"></div>
-      </section>
+  <div class="app">
+    <!-- Ziehfläche der Fensterleiste. Die Fensterknöpfe rechts zeichnet
+         Windows selbst (titleBarOverlay in main.js). -->
+    <div class="titlebar"></div>
 
-      <section class="card">
-        <div class="report-head">
-          <h2>Auswertung</h2>
-          <div class="report-controls">
-            <label>Monat:
-              <select id="monthSelect"></select>
+    <!-- ============ SEITENLEISTE ============ -->
+    <aside class="sidebar">
+      <div class="brand">
+        <svg class="brand-mark"><use href="#i-clock"/></svg>
+        <span class="brand-name">Desk Tracking</span>
+        <button id="themeToggle" class="theme-btn" data-i18n-title="app.theme">
+          <svg class="ico"><use href="#i-sun"/></svg>
+        </button>
+        <div class="lang-wrap">
+          <button id="langToggle" class="theme-btn lang-btn" data-i18n-title="app.language">
+            <svg class="flag-ico"><use href="#f-de"/></svg>
+          </button>
+          <div id="langMenu" class="lang-menu" hidden>
+            <button type="button" data-lang="de"><svg class="flag-ico"><use href="#f-de"/></svg>Deutsch</button>
+            <button type="button" data-lang="en"><svg class="flag-ico"><use href="#f-gb"/></svg>English</button>
+            <button type="button" data-lang="fr"><svg class="flag-ico"><use href="#f-fr"/></svg>Français</button>
+            <button type="button" data-lang="es"><svg class="flag-ico"><use href="#f-es"/></svg>Español</button>
+            <button type="button" data-lang="ja"><svg class="flag-ico"><use href="#f-jp"/></svg>日本語</button>
+            <button type="button" data-lang="zh"><svg class="flag-ico"><use href="#f-cn"/></svg>中文</button>
+          </div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-btn active" data-view="erfassung">
+          <svg class="ico"><use href="#i-clock"/></svg><span data-i18n="nav.erfassung">Erfassung</span>
+        </button>
+        <button class="nav-btn" data-view="kalender">
+          <svg class="ico"><use href="#i-calendar"/></svg><span data-i18n="nav.kalender">Kalender</span>
+        </button>
+        <button class="nav-btn" data-view="dashboard">
+          <svg class="ico"><use href="#i-chart"/></svg><span data-i18n="nav.dashboard">Dashboard</span>
+        </button>
+        <button class="nav-btn" data-view="projekte">
+          <svg class="ico"><use href="#i-folder"/></svg><span data-i18n="nav.projekte">Projekte</span>
+        </button>
+        <button class="nav-btn" data-view="logs">
+          <svg class="ico"><use href="#i-list"/></svg><span data-i18n="nav.logs">Protokoll</span>
+        </button>
+        <button class="nav-btn" data-view="settings">
+          <svg class="ico"><use href="#i-settings"/></svg><span data-i18n="nav.settings">Einstellungen</span>
+        </button>
+      </nav>
+
+      <!-- Statusleiste unten: immer sichtbar, egal in welcher Ansicht -->
+      <div class="side-status">
+        <span id="statusDot" class="dot dot-off"></span>
+        <div class="side-status-main">
+          <div id="statusText" class="side-status-text" data-i18n="status.off">Nicht eingestempelt</div>
+          <div id="sessionInfo" class="side-status-sub"></div>
+        </div>
+        <div id="clock" class="side-clock">--:--:--</div>
+      </div>
+    </aside>
+
+    <!-- ============ INHALT ============ -->
+    <main class="content">
+
+      <!-- ---------- ERFASSUNG ---------- -->
+      <div id="view-erfassung" class="view">
+        <header class="view-head">
+          <h1 data-i18n="erf.title">Erfassung</h1>
+          <p class="view-sub" data-i18n="erf.sub">Kommen, Pausen und Gehen für heute</p>
+        </header>
+
+        <section class="card stamp-card">
+          <div class="stamp-main">
+            <div class="stamp-time">
+              <span class="stamp-label" data-i18n="erf.today">Heute gearbeitet (netto)</span>
+              <span id="workToday" class="stamp-value">00:00:00</span>
+            </div>
+            <label class="field stamp-project">
+              <span data-i18n="erf.project">Projekt</span>
+              <select id="activeProject"></select>
             </label>
-            <label>Projekt:
-              <select id="reportProject"></select>
-            </label>
-            <button id="btnAdd" class="btn btn-ghost">+ Zeit nachtragen</button>
-            <button id="btnExport" class="btn btn-ghost">CSV exportieren</button>
-            <button id="btnPdf" class="btn btn-ghost">Als PDF speichern</button>
-            <button id="btnPrint" class="btn btn-ghost">Drucken</button>
           </div>
-        </div>
 
-        <div class="summary">
-          <div class="summary-item">
-            <span class="summary-label">Summe Monat (netto)</span>
-            <span id="sumMonth" class="summary-big">00:00</span>
+          <div class="buttons">
+            <button id="btnIn" class="btn btn-green">
+              <svg class="ico"><use href="#i-play"/></svg><span data-i18n="erf.in">Kommen</span>
+            </button>
+            <button id="btnBreak" class="btn btn-amber">
+              <svg class="ico"><use href="#i-pause" id="btnBreakIcon"/></svg>
+              <span id="btnBreakText" data-i18n="erf.breakStart">Pause starten</span>
+            </button>
+            <button id="btnOut" class="btn btn-red">
+              <svg class="ico"><use href="#i-stop"/></svg><span data-i18n="erf.out">Gehen</span>
+            </button>
           </div>
-          <div class="summary-item">
-            <span class="summary-label">Arbeitstage</span>
-            <span id="daysMonth" class="summary-big">0</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Summe Pausen</span>
-            <span id="breakMonth" class="summary-big">00:00</span>
-          </div>
-        </div>
+        </section>
 
-        <div class="table-wrap">
-          <table id="report">
+        <section class="card">
+          <div class="report-head">
+            <h2 data-i18n="rep.title">Auswertung</h2>
+            <div class="report-controls">
+              <label><span data-i18n="rep.month">Monat</span>
+                <select id="monthSelect"></select>
+              </label>
+              <label><span data-i18n="rep.project">Projekt</span>
+                <select id="reportProject"></select>
+              </label>
+              <button id="btnAdd" class="btn btn-ghost">
+                <svg class="ico"><use href="#i-plus"/></svg><span data-i18n="rep.add">Nachtragen</span>
+              </button>
+              <button id="btnExport" class="btn btn-ghost">
+                <svg class="ico"><use href="#i-download"/></svg><span data-i18n="rep.csv">CSV</span>
+              </button>
+              <button id="btnPdf" class="btn btn-ghost">
+                <svg class="ico"><use href="#i-file"/></svg><span data-i18n="rep.pdf">PDF</span>
+              </button>
+              <button id="btnPrint" class="btn btn-ghost">
+                <svg class="ico"><use href="#i-printer"/></svg><span data-i18n="rep.print">Drucken</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="summary">
+            <div class="summary-item">
+              <span class="summary-label" data-i18n="rep.sumMonth">Summe Monat (netto)</span>
+              <span id="sumMonth" class="summary-big">00:00</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label" data-i18n="rep.workdays">Arbeitstage</span>
+              <span id="daysMonth" class="summary-big">0</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label" data-i18n="rep.sumBreaks">Summe Pausen</span>
+              <span id="breakMonth" class="summary-big">00:00</span>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table id="report">
+              <thead>
+                <tr>
+                  <th data-i18n="rep.date">Datum</th><th data-i18n="rep.project">Projekt</th><th data-i18n="rep.in">Kommen</th><th data-i18n="rep.out">Gehen</th>
+                  <th data-i18n="rep.breaks">Pausen</th><th data-i18n="rep.net">Netto</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="reportBody"></tbody>
+            </table>
+          </div>
+          <p class="hint"><span data-i18n="rep.hint">Auf eine Tageszeile klicken, um Datum, Zeiten und Pausen zu bearbeiten.</span></p>
+        </section>
+
+        <!-- Erscheint nur im PDF/Ausdruck: die Termine des gewählten Monats -->
+        <section class="card print-only" id="printEvents">
+          <h2 data-i18n="csv.events">Termine</h2>
+          <table>
             <thead>
-              <tr>
-                <th>Datum</th><th>Projekt</th><th>Kommen</th><th>Gehen</th>
-                <th>Pausen</th><th>Netto</th><th></th>
-              </tr>
+              <tr><th data-i18n="csv.date">Datum</th><th data-i18n="csv.time">Uhrzeit</th><th data-i18n="csv.project">Projekt</th><th data-i18n="csv.evTitle">Titel</th><th data-i18n="csv.note">Notiz</th></tr>
             </thead>
-            <tbody id="reportBody"></tbody>
+            <tbody id="printEventBody"></tbody>
           </table>
-        </div>
-        <p class="hint">Tipp: Auf eine Tageszeile klicken, um Datum, Zeiten und Pausen zu bearbeiten.
-          Über das Datumsfeld eines Blocks lässt sich der Eintrag auf einen anderen Tag verschieben.</p>
-      </section>
-    </div>
+        </section>
+      </div>
 
-    <!-- ============ VIEW: DASHBOARD ============ -->
-    <div id="view-dashboard" class="view" hidden>
-      <section class="card">
-        <div class="report-head">
-          <h2>Dashboard</h2>
-          <div class="report-controls">
-            <label>Monat:
-              <select id="dashMonth"></select>
-            </label>
-            <label>Projekt:
-              <select id="dashProject"></select>
-            </label>
+      <!-- ---------- KALENDER ---------- -->
+      <div id="view-kalender" class="view" hidden>
+        <header class="view-head">
+          <h1 data-i18n="cal.title">Kalender</h1>
+          <p class="view-sub" data-i18n="cal.sub">Erfasste Zeiten und Termine im Monatsüberblick</p>
+        </header>
+
+        <section class="card">
+          <div class="cal-head">
+            <div class="cal-nav">
+              <button id="calPrev" class="icon-btn" data-i18n-title="cal.prev">
+                <svg class="ico"><use href="#i-left"/></svg>
+              </button>
+              <h2 id="calTitle" class="cal-title">–</h2>
+              <button id="calNext" class="icon-btn" data-i18n-title="cal.next">
+                <svg class="ico"><use href="#i-right"/></svg>
+              </button>
+              <button id="calToday" class="btn btn-ghost btn-small" data-i18n="cal.today">Heute</button>
+            </div>
+            <div class="cal-stats" id="calStats"></div>
           </div>
-        </div>
-        <div id="dashKpis" class="summary summary-4"></div>
-      </section>
 
-      <section class="card">
-        <h2>Stunden je Projekt (Monat)</h2>
-        <div id="chartProjects" class="chart"></div>
-        <div class="chart-legend">Netto-Arbeitszeit pro Projekt im gewählten Monat (alle Projekte).</div>
-      </section>
-
-      <section class="card">
-        <h2>Umsatz je Projekt (Monat)</h2>
-        <div id="chartRevenue" class="chart"></div>
-        <div class="chart-legend">Betrag = Netto-Stunden × Stundensatz · <strong id="revenueTotal"></strong></div>
-      </section>
-
-      <section class="card">
-        <h2>Netto-Stunden pro Tag</h2>
-        <div id="chartDays" class="chart"></div>
-        <div class="chart-legend"><span class="swatch"></span> gestrichelt = Tagessoll · grüne Balken = Soll erreicht</div>
-      </section>
-
-      <section class="card">
-        <h2>Monatsvergleich</h2>
-        <div id="chartMonths" class="chart"></div>
-      </section>
-    </div>
-
-    <!-- ============ VIEW: PROJEKTE ============ -->
-    <div id="view-projekte" class="view" hidden>
-      <section class="card">
-        <h2>Projekte</h2>
-        <div class="project-add">
-          <input type="text" id="newProjectName" placeholder="Neues Projekt…" maxlength="60" />
-          <input type="number" id="newProjectRate" class="rate-input" placeholder="€/h" min="0" step="0.5" />
-          <button id="btnAddProject" class="btn btn-green">+ Projekt anlegen</button>
-        </div>
-        <div id="projMsg" class="message"></div>
-        <div class="table-wrap">
-          <table id="projectTable">
-            <thead>
-              <tr><th>Projekt</th><th>Satz (€/h)</th><th>Status</th><th>Einträge</th>
-                <th>Stunden</th><th>Betrag</th><th></th></tr>
-            </thead>
-            <tbody id="projectBody"></tbody>
-          </table>
-        </div>
-        <p class="hint">„Export" schreibt alle Zeiten eines Projekts über alle Monate in eine CSV-Datei –
-          mit Pausen, Netto-Stunden, Beträgen und Monatssummen.
-          Satz <strong>0 €/h</strong> = ohne Entlohnung. „Abschließen" beendet ein Projekt –
-          es ist dann in der Erfassung nicht mehr wählbar, bleibt aber in den Auswertungen.
-          Über „Öffnen" kannst du es wieder aktivieren. Ein Projekt mit Einträgen lässt sich nur
-          löschen, wenn du die Zeiten auf ein anderes Projekt umbuchst.</p>
-      </section>
-    </div>
-
-    <!-- ============ VIEW: LOGS ============ -->
-    <div id="view-logs" class="view" hidden>
-      <section class="card">
-        <div class="report-head">
-          <h2>Änderungsprotokoll</h2>
-          <div class="report-controls">
-            <button id="btnClearLogs" class="btn btn-ghost">Protokoll leeren</button>
+          <div class="cal-weekdays">
+            <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span>
+            <span>Fr</span><span>Sa</span><span>So</span>
           </div>
-        </div>
-        <div class="table-wrap">
-          <table id="logTable">
-            <thead>
-              <tr><th>Zeitpunkt</th><th>Aktion</th><th>Details</th></tr>
-            </thead>
-            <tbody id="logBody"></tbody>
-          </table>
-        </div>
-      </section>
-    </div>
+          <div id="calGrid" class="cal-grid"></div>
 
-    <!-- ============ VIEW: EINSTELLUNGEN ============ -->
-    <div id="view-settings" class="view" hidden>
-      <section class="card">
-        <h2>Einstellungen</h2>
-        <div class="settings-grid">
-          <label class="field">
-            <span>Soll-Stunden pro Tag</span>
-            <input type="time" id="setTarget" />
-          </label>
-          <label class="field">
-            <span>Arbeitstage pro Woche</span>
-            <input type="number" id="setDays" min="1" max="7" step="1" />
-          </label>
-          <label class="field">
-            <span>Zeiten runden (Anzeige)</span>
-            <select id="setRound">
-              <option value="0">aus</option>
-              <option value="5">auf 5 Minuten</option>
-              <option value="15">auf 15 Minuten</option>
-              <option value="30">auf 30 Minuten</option>
-            </select>
-          </label>
+          <div class="cal-legend">
+            <span class="legend"><span class="cal-dot cal-dot-time"></span> <span data-i18n="cal.legendTime">erfasste Zeit</span></span>
+            <span class="legend"><span class="cal-dot cal-dot-event"></span> <span data-i18n="cal.legendEvent">Termin</span></span>
+            <span class="legend" data-i18n="cal.legendHint">Auf einen Tag klicken, um Zeiten und Termine zu bearbeiten.</span>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 data-i18n="cal.upcoming">Kommende Termine</h2>
+          <div id="calUpcoming" class="upcoming"></div>
+        </section>
+      </div>
+
+      <!-- ---------- DASHBOARD ---------- -->
+      <div id="view-dashboard" class="view" hidden>
+        <header class="view-head">
+          <h1 data-i18n="dash.title">Dashboard</h1>
+          <p class="view-sub" data-i18n="dash.sub">Kennzahlen, Projekte und Verlauf</p>
+        </header>
+
+        <section class="card">
+          <div class="report-head">
+            <h2 data-i18n="dash.overview">Überblick</h2>
+            <div class="report-controls">
+              <label><span data-i18n="rep.month">Monat</span>
+                <select id="dashMonth"></select>
+              </label>
+              <label><span data-i18n="rep.project">Projekt</span>
+                <select id="dashProject"></select>
+              </label>
+            </div>
+          </div>
+          <div id="dashKpis" class="summary summary-4"></div>
+        </section>
+
+        <div class="card-grid">
+          <section class="card">
+            <h2 data-i18n="dash.hoursByProject">Stunden je Projekt</h2>
+            <div id="chartProjects" class="chart"></div>
+            <div class="chart-legend" data-i18n="dash.hoursLegend">Netto-Arbeitszeit im gewählten Monat, alle Projekte.</div>
+          </section>
+
+          <section class="card">
+            <h2 data-i18n="dash.revenueByProject">Umsatz je Projekt</h2>
+            <div id="chartRevenue" class="chart"></div>
+            <div class="chart-legend"><span data-i18n="dash.revenueLegend">Netto-Stunden × Stundensatz</span> · <strong id="revenueTotal"></strong></div>
+          </section>
+        </div>
+
+        <section class="card">
+          <h2 data-i18n="dash.hoursPerDay">Netto-Stunden pro Tag</h2>
+          <div id="chartDays" class="chart"></div>
+          <div class="chart-legend"><span class="swatch"></span> <span data-i18n="dash.dayLegend">gestrichelt = Tagessoll · grüne Balken = Soll erreicht</span></div>
+        </section>
+
+        <section class="card">
+          <h2 data-i18n="dash.monthCompare">Monatsvergleich</h2>
+          <div id="chartMonths" class="chart"></div>
+        </section>
+      </div>
+
+      <!-- ---------- PROJEKTE ---------- -->
+      <div id="view-projekte" class="view" hidden>
+        <header class="view-head">
+          <h1 data-i18n="proj.title">Projekte</h1>
+          <p class="view-sub" data-i18n="proj.sub">Stundensätze, Auswertung und Export je Projekt</p>
+        </header>
+
+        <section class="card">
+          <div class="project-add">
+            <input type="text" id="newProjectName" data-i18n-ph="proj.newName" placeholder="Name des neuen Projekts…" maxlength="60" />
+            <div class="stepper" data-i18n-title="proj.rate">
+              <button type="button" data-step="-5"><svg class="ico"><use href="#i-minus"/></svg></button>
+              <input type="number" id="newProjectRate" placeholder="0" min="0" step="5" />
+              <button type="button" data-step="5"><svg class="ico"><use href="#i-plus"/></svg></button>
+              <span class="stepper-suffix">€/h</span>
+            </div>
+            <button id="btnAddProject" class="btn btn-primary">
+              <svg class="ico"><use href="#i-plus"/></svg><span data-i18n="proj.create">Projekt anlegen</span>
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table id="projectTable">
+              <thead>
+                <tr><th data-i18n="proj.colProject">Projekt</th><th data-i18n="proj.colRate">Satz (€/h)</th><th data-i18n="proj.colStatus">Status</th><th data-i18n="proj.colEntries">Einträge</th>
+                  <th data-i18n="proj.colHours">Stunden</th><th data-i18n="proj.colAmount">Betrag</th><th></th></tr>
+              </thead>
+              <tbody id="projectBody"></tbody>
+            </table>
+          </div>
+          <p class="hint">
+            <span class="legend"><svg class="ico"><use href="#i-check"/></svg> <span data-i18n="proj.save">Änderungen speichern</span></span>
+            <span class="legend"><svg class="ico"><use href="#i-download"/></svg> <span data-i18n="proj.export">alle Zeiten als CSV exportieren</span></span>
+            <span class="legend"><svg class="ico"><use href="#i-archive"/></svg> <span data-i18n="proj.close">abschließen</span></span>
+            <span class="legend"><svg class="ico"><use href="#i-trash"/></svg> <span data-i18n="proj.delete">löschen</span></span>
+          </p>
+          <p class="hint" data-i18n="proj.hint"></p>
+        </section>
+      </div>
+
+      <!-- ---------- PROTOKOLL ---------- -->
+      <div id="view-logs" class="view" hidden>
+        <header class="view-head">
+          <h1 data-i18n="logs.title">Protokoll</h1>
+          <p class="view-sub" data-i18n="logs.sub">Jede Änderung mit Zeitpunkt</p>
+        </header>
+
+        <section class="card">
+          <div class="report-head">
+            <h2 data-i18n="logs.changes">Änderungen</h2>
+            <div class="report-controls">
+              <button id="btnClearLogs" class="btn btn-ghost" data-i18n="logs.clear">Protokoll leeren</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="logTable">
+              <thead>
+                <tr><th data-i18n="logs.time">Zeitpunkt</th><th data-i18n="logs.action">Aktion</th><th data-i18n="logs.detail">Details</th></tr>
+              </thead>
+              <tbody id="logBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- ---------- EINSTELLUNGEN ---------- -->
+      <div id="view-settings" class="view" hidden>
+        <header class="view-head">
+          <h1 data-i18n="set.title">Einstellungen</h1>
+          <p class="view-sub" data-i18n="set.sub">Arbeitszeit, Darstellung, Updates und Daten</p>
+        </header>
+
+        <section class="card">
+          <h2 data-i18n="set.worktime">Arbeitszeit</h2>
+          <div class="settings-grid">
+            <label class="field">
+              <span data-i18n="set.targetHours">Soll-Stunden pro Tag</span>
+              <input type="time" id="setTarget" />
+            </label>
+            <div class="field">
+              <span data-i18n="set.daysPerWeek">Arbeitstage pro Woche</span>
+              <div class="stepper">
+                <button type="button" data-step="-1" data-i18n-title="com.less" title="weniger">
+                  <svg class="ico"><use href="#i-minus"/></svg>
+                </button>
+                <input type="number" id="setDays" min="1" max="7" step="1" />
+                <button type="button" data-step="1" data-i18n-title="com.more" title="mehr">
+                  <svg class="ico"><use href="#i-plus"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="field">
+              <span data-i18n="set.rounding">Zeiten runden (nur Anzeige)</span>
+              <div class="segmented" id="setRound">
+                <button type="button" data-value="0" data-i18n="set.roundOff">aus</button>
+                <button type="button" data-value="5" data-i18n="set.minDur" data-i18n-arg="5">5 min</button>
+                <button type="button" data-value="15" data-i18n="set.minDur" data-i18n-arg="15">15 min</button>
+                <button type="button" data-value="30" data-i18n="set.minDur" data-i18n-arg="30">30 min</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="setSave" class="btn btn-primary" data-i18n="set.save">Speichern</button>
+          </div>
+          <p class="hint" data-i18n="set.worktimeHint"></p>
+        </section>
+
+        <section class="card">
+          <h2 data-i18n="set.dates">Datum und Sprache</h2>
+          <div class="date-grid">
+            <label class="field">
+              <span data-i18n="set.language">Sprache</span>
+              <select id="setLanguage">
+                <option value="de">Deutsch</option>
+                <option value="en">English</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+                <option value="ja">日本語</option>
+                <option value="zh">中文</option>
+              </select>
+            </label>
+            <label class="field">
+              <span data-i18n="set.dateFormat">Datum-Format</span>
+              <select id="setDateFormat"></select>
+            </label>
+            <div class="field">
+              <span data-i18n="set.shortYear">Jahr abkürzen</span>
+              <div class="segmented" id="setShortYear">
+                <button type="button" data-value="1" data-i18n="set.on">ein</button>
+                <button type="button" data-value="0" data-i18n="set.off">aus</button>
+              </div>
+            </div>
+          </div>
+          <div class="date-preview">
+            <span data-i18n="set.example">Beispiel</span>
+            <strong id="datePreview">–</strong>
+          </div>
+          <div class="form-actions">
+            <button id="dateSave" class="btn btn-primary" data-i18n="set.save">Speichern</button>
+          </div>
+          <p class="hint" id="dateHint"></p>
+        </section>
+
+        <section class="card">
+          <h2 data-i18n="set.quick">Schnellzugriff</h2>
+          <div class="notify-grid">
+            <div class="field">
+              <span data-i18n="set.hotkey">Tastenkürzel</span>
+              <div class="segmented" id="setHotkeyEnabled">
+                <button type="button" data-value="1" data-i18n="set.on">ein</button>
+                <button type="button" data-value="0" data-i18n="set.off">aus</button>
+              </div>
+            </div>
+            <div class="field">
+              <span data-i18n="set.combo">Kombination</span>
+              <div class="input-with-action">
+                <input type="text" id="setHotkey" class="hotkey-input" readonly
+                  data-i18n-ph="set.comboPlaceholder" placeholder="Klicken, dann Tasten drücken" />
+                <button class="mini-btn" type="button" id="hotkeyReset"
+                  data-i18n-title="set.hotkeyReset" data-i18n="set.hotkeyResetShort">Strg+T</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="hotkeySave" class="btn btn-primary" data-i18n="set.save">Speichern</button>
+          </div>
+          <p class="hint" data-i18n="set.hotkeyHint"></p>
+          <div class="notify-grid">
+            <div class="field">
+              <span data-i18n="set.miniShow">Bei minimiertem Fenster zeigen</span>
+              <div class="segmented" id="setMiniEnabled">
+                <button type="button" data-value="1" data-i18n="set.on">ein</button>
+                <button type="button" data-value="0" data-i18n="set.off">aus</button>
+              </div>
+            </div>
+            <div class="field">
+              <span data-i18n="set.miniCorner">Ecke</span>
+              <div class="segmented" id="setMiniPosition">
+                <button type="button" data-value="bl" data-i18n="set.miniBl">unten links</button>
+                <button type="button" data-value="br" data-i18n="set.miniBr">unten rechts</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="miniSave" class="btn btn-primary" data-i18n="set.save">Speichern</button>
+            <button id="miniPreview" class="btn btn-ghost" data-i18n="set.miniPreview">Jetzt ansehen</button>
+          </div>
+          <p class="hint" data-i18n="set.miniHint"></p>
+          <div class="notify-grid">
+            <div class="field">
+              <span data-i18n="set.remind">Termine erinnern</span>
+              <div class="segmented" id="setNotify">
+                <button type="button" data-value="1" data-i18n="set.on">ein</button>
+                <button type="button" data-value="0" data-i18n="set.off">aus</button>
+              </div>
+            </div>
+            <div class="field">
+              <span data-i18n="set.howEarly">Wie früh?</span>
+              <div class="segmented" id="setNotifyBefore">
+                <button type="button" data-value="0" data-i18n="set.onTime">pünktlich</button>
+                <button type="button" data-value="5" data-i18n="set.min" data-i18n-arg="5">5 min</button>
+                <button type="button" data-value="10" data-i18n="set.min" data-i18n-arg="10">10 min</button>
+                <button type="button" data-value="15" data-i18n="set.min" data-i18n-arg="15">15 min</button>
+                <button type="button" data-value="30" data-i18n="set.min" data-i18n-arg="30">30 min</button>
+                <button type="button" data-value="60" data-i18n="set.hour">1 Std</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="notifySave" class="btn btn-primary" data-i18n="set.save">Speichern</button>
+            <button id="notifyTest" class="btn btn-ghost" data-i18n="set.testNotify">Benachrichtigung testen</button>
+          </div>
+          <p class="hint" data-i18n="set.remindHint"></p>
+        </section>
+
+        <section class="card">
+          <h2 data-i18n="set.appearance">Darstellung</h2>
+          <div class="theme-choice">
+            <button class="theme-card" data-theme-value="caro-dark">
+              <span class="theme-preview theme-preview-dark">
+                <span class="tp-side"></span><span class="tp-main"><span class="tp-bar"></span><span class="tp-bar short"></span></span>
+              </span>
+              <span class="theme-card-label" data-i18n="set.dark">Dunkel</span>
+            </button>
+            <button class="theme-card" data-theme-value="caro-light">
+              <span class="theme-preview theme-preview-light">
+                <span class="tp-side"></span><span class="tp-main"><span class="tp-bar"></span><span class="tp-bar short"></span></span>
+              </span>
+              <span class="theme-card-label" data-i18n="set.light">Hell</span>
+            </button>
+          </div>
+          <p class="hint" data-i18n="set.appearanceHint"></p>
+        </section>
+
+        <section class="card">
+          <h2 data-i18n="set.updates">Updates</h2>
+          <div class="update-row">
+            <div>
+              <div class="update-version"><span data-i18n="set.version">Installierte Version:</span> <strong id="appVersion">–</strong></div>
+              <div id="updateStatus" class="update-status" data-i18n="upd.none">Noch nicht nach Updates gesucht.</div>
+            </div>
+            <div class="update-actions">
+              <button id="btnChangelog" class="btn btn-ghost">
+                <svg class="ico"><use href="#i-note"/></svg><span data-i18n="chg.open">Was ist neu?</span>
+              </button>
+              <button id="btnCheckUpdate" class="btn btn-ghost">
+                <svg class="ico"><use href="#i-refresh"/></svg><span data-i18n="set.checkUpdate">Nach Updates suchen</span>
+              </button>
+              <button id="btnInstallUpdate" class="btn btn-primary" data-i18n="set.installUpdate" hidden>Neu starten &amp; installieren</button>
+            </div>
+          </div>
+          <div id="updateBar" class="update-bar" hidden><div id="updateBarFill" class="update-bar-fill"></div></div>
+          <p class="hint" data-i18n="set.updateHint"></p>
+          <h2 data-i18n="set.storage">Datenspeicher</h2>
+          <div class="update-row">
+            <div>
+              <div class="update-status" data-i18n="set.storagePath">Deine Zeiten liegen in:</div>
+              <code id="dataPath" class="data-path">–</code>
+            </div>
+            <div class="update-actions">
+              <button id="btnOpenData" class="btn btn-ghost">
+                <svg class="ico"><use href="#i-folder-open"/></svg><span data-i18n="set.openFolder">Ordner öffnen</span>
+              </button>
+            </div>
+          </div>
+          <p class="hint" data-i18n="set.storageHint"></p>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Eigener Zeitwähler: wird an das jeweilige Feld gesetzt -->
+  <div id="timepicker" class="timepicker" hidden>
+    <div class="tp-head">
+      <span id="tpWert" class="tp-wert">--:--</span>
+      <button id="tpJetzt" class="tp-jetzt" type="button" data-i18n="form.now">jetzt</button>
+    </div>
+    <div class="tp-spalten">
+      <div class="tp-spalte">
+        <span data-i18n="tp.hour">Stunde</span>
+        <div id="tpStunden" class="tp-gitter tp-stunden"></div>
+      </div>
+      <div class="tp-spalte">
+        <span data-i18n="tp.minute">Minute</span>
+        <div id="tpMinuten" class="tp-gitter tp-minuten"></div>
+      </div>
+    </div>
+    <div class="tp-fuss">
+      <div class="tp-fein">
+        <button id="tpMinus" type="button" data-i18n-title="tp.back" data-i18n="tp.minusMin">−1 min</button>
+        <button id="tpPlus" type="button" data-i18n-title="tp.fwd" data-i18n="tp.plusMin">+1 min</button>
+      </div>
+      <button id="tpFertig" class="btn btn-primary btn-small" type="button" data-i18n="tp.apply">Übernehmen</button>
+    </div>
+  </div>
+
+  <!-- Kurzmeldungen unten rechts -->
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <!-- Änderungen der letzten Versionen -->
+  <div id="changelogModal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div class="modal-head-main">
+          <h3 data-i18n="chg.title">Änderungen</h3>
+          <span class="modal-sub" data-i18n="chg.sub">Was sich in den letzten Versionen geändert hat</span>
+        </div>
+        <button id="changelogClose" class="modal-close" data-i18n-title="conf.close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="changelogBody" class="changelog"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rückfrage vor dem Löschen -->
+  <div id="confirmModal" class="modal-overlay" hidden>
+    <div class="modal modal-narrow" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div class="modal-head-main">
+          <h3 id="confirmTitle" data-i18n="conf.deleteQ">Löschen?</h3>
+        </div>
+        <button id="confirmClose" class="modal-close" data-i18n-title="conf.close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="confirm-body">
+          <span id="confirmIcon" class="confirm-icon">
+            <svg class="ico"><use href="#i-trash"/></svg>
+          </span>
+          <div>
+            <p id="confirmText" class="confirm-text"></p>
+            <p id="confirmHint" class="confirm-hint"></p>
+          </div>
         </div>
         <div class="form-actions">
-          <button id="setSave" class="btn btn-green">Speichern</button>
+          <button id="confirmCancel" class="btn btn-ghost" type="button" data-i18n="conf.cancel">Abbrechen</button>
+          <button id="confirmOk" class="btn btn-red" type="button">Löschen</button>
         </div>
-        <div id="setMsg" class="message"></div>
-        <p class="hint">Das Tagessoll und die Arbeitstage fließen in den Soll/Ist-Saldo im Dashboard ein.
-          „Runden" betrifft nur die Anzeige der Netto-Zeiten, nicht die gespeicherten Daten.</p>
-      </section>
-
-      <section class="card">
-        <h2>Updates</h2>
-        <div class="update-row">
-          <div>
-            <div class="update-version">Installierte Version: <strong id="appVersion">–</strong></div>
-            <div id="updateStatus" class="update-status">Noch nicht nach Updates gesucht.</div>
-          </div>
-          <div class="update-actions">
-            <button id="btnCheckUpdate" class="btn btn-ghost">Nach Updates suchen</button>
-            <button id="btnInstallUpdate" class="btn btn-green" hidden>Jetzt neu starten &amp; installieren</button>
-          </div>
-        </div>
-        <div id="updateBar" class="update-bar" hidden><div id="updateBarFill" class="update-bar-fill"></div></div>
-        <p class="hint">Die Stempeluhr sucht beim Start automatisch nach einer neueren Version und lädt sie
-          im Hintergrund. Deine erfassten Zeiten werden dabei <strong>nicht angefasst</strong> – sie liegen
-          außerhalb des Programmordners.</p>
-      </section>
-
-      <section class="card">
-        <h2>Datenspeicher</h2>
-        <div class="update-row">
-          <div>
-            <div class="update-status">Deine Zeiten liegen in:</div>
-            <code id="dataPath" class="data-path">–</code>
-          </div>
-          <div class="update-actions">
-            <button id="btnOpenData" class="btn btn-ghost">Ordner öffnen</button>
-          </div>
-        </div>
-        <p class="hint">Diese Datei enthält alle Zeiten, Projekte und Einstellungen. Sichere sie regelmäßig –
-          eine Kopie der Datei genügt als vollständiges Backup.</p>
-      </section>
+      </div>
     </div>
-  </main>
+  </div>
 
-  <!-- Detail-/Bearbeiten-Modal für einen Tag -->
+  <!-- Detail-/Bearbeiten-Fenster für einen Tag: Zeiten und Termine -->
   <div id="modal" class="modal-overlay" hidden>
     <div class="modal" role="dialog" aria-modal="true">
       <div class="modal-head">
-        <h3 id="modalTitle">Tag</h3>
-        <button id="modalClose" class="modal-close" title="Schließen">✕</button>
+        <div class="modal-head-main">
+          <h3 id="modalTitle">Tag</h3>
+          <span id="modalSummary" class="modal-summary"></span>
+        </div>
+        <button id="modalClose" class="modal-close" data-i18n-title="conf.close">✕</button>
+      </div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-tab="zeiten">
+          <svg class="ico"><use href="#i-clock"/></svg><span data-i18n="day.tabTimes">Zeiten</span>
+        </button>
+        <button class="modal-tab" data-tab="termine">
+          <svg class="ico"><use href="#i-note"/></svg><span data-i18n="day.tabEvents">Termine</span> <span id="tabEventCount" class="tab-count"></span>
+        </button>
       </div>
       <div id="modalBody" class="modal-body"></div>
     </div>
@@ -263,21 +687,21 @@
 
   <!-- Projekt löschen: Zeiten auf ein anderes Projekt umbuchen -->
   <div id="reassignModal" class="modal-overlay" hidden>
-    <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal modal-narrow" role="dialog" aria-modal="true">
       <div class="modal-head">
-        <h3>Projekt löschen</h3>
-        <button id="reassignClose" class="modal-close" title="Schließen">✕</button>
+        <h3 data-i18n="rea.title">Projekt löschen</h3>
+        <button id="reassignClose" class="modal-close" data-i18n-title="conf.close">✕</button>
       </div>
       <div class="modal-body">
         <p id="reassignText" class="hint"></p>
         <label class="field">
-          <span>Zeiten umbuchen auf</span>
+          <span data-i18n="rea.target">Zeiten umbuchen auf</span>
           <select id="reassignTarget"></select>
         </label>
         <div id="reassignMsg" class="message"></div>
         <div class="form-actions">
-          <button id="reassignCancel" class="btn btn-ghost" type="button">Abbrechen</button>
-          <button id="reassignOk" class="btn btn-red" type="button">Umbuchen &amp; löschen</button>
+          <button id="reassignCancel" class="btn btn-ghost" type="button" data-i18n="conf.cancel">Abbrechen</button>
+          <button id="reassignOk" class="btn btn-red" type="button" data-i18n="rea.ok">Umbuchen &amp; löschen</button>
         </div>
       </div>
     </div>
@@ -285,34 +709,48 @@
 
   <!-- Formular: vergangene Zeit nachtragen -->
   <div id="formModal" class="modal-overlay" hidden>
-    <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal modal-narrow" role="dialog" aria-modal="true">
       <div class="modal-head">
-        <h3>Zeit nachtragen</h3>
-        <button id="formClose" class="modal-close" title="Schließen">✕</button>
+        <h3 data-i18n="form.addTime">Zeit nachtragen</h3>
+        <button id="formClose" class="modal-close" data-i18n-title="conf.close">✕</button>
       </div>
       <div class="modal-body">
         <div class="form-grid">
-          <label class="field"><span>Datum</span><input type="date" id="fDate" /></label>
-          <label class="field"><span>Projekt</span><select id="fProject"></select></label>
-          <label class="field"><span>Kommen</span><input type="time" id="fIn" /></label>
-          <label class="field"><span>Gehen</span><input type="time" id="fOut" /></label>
+          <label class="field"><span data-i18n="form.date">Datum</span><input type="date" id="fDate" /></label>
+          <label class="field"><span data-i18n="erf.project">Projekt</span><select id="fProject"></select></label>
+          <div class="field"><span data-i18n="erf.in">Kommen</span>
+            <div class="input-with-action">
+              <input type="time" id="fIn" />
+              <button class="mini-btn" type="button" data-now="fIn" data-i18n-title="form.nowTitle" data-i18n="form.now">jetzt</button>
+            </div>
+          </div>
+          <div class="field"><span data-i18n="erf.out">Gehen</span>
+            <div class="input-with-action">
+              <input type="time" id="fOut" />
+              <button class="mini-btn" type="button" data-now="fOut" data-i18n-title="form.nowTitle" data-i18n="form.now">jetzt</button>
+            </div>
+            <small class="field-hint" data-i18n="form.outHint">Liegt „Gehen" vor „Kommen", endet der Eintrag am Folgetag.</small>
+          </div>
         </div>
         <div class="form-breaks">
           <div class="form-breaks-head">
-            <span>Pausen (optional)</span>
-            <button id="fAddBreak" class="btn btn-ghost btn-small" type="button">+ Pause</button>
+            <span data-i18n="form.breaksOptional">Pausen (optional)</span>
+            <button id="fAddBreak" class="btn btn-ghost btn-small" type="button" data-i18n="day.addBreak">+ Pause</button>
           </div>
           <div id="fBreaks"></div>
         </div>
+        <div id="fPreview" class="form-preview"></div>
         <div id="formMsg" class="message"></div>
         <div class="form-actions">
-          <button id="formCancel" class="btn btn-ghost" type="button">Abbrechen</button>
-          <button id="formSave" class="btn btn-green" type="button">Speichern</button>
+          <button id="formCancel" class="btn btn-ghost" type="button" data-i18n="form.cancel">Abbrechen</button>
+          <button id="formSave" class="btn btn-primary" type="button" data-i18n="form.save">Speichern</button>
         </div>
       </div>
     </div>
   </div>
 
+  <script src="i18n.js"></script>
+  <script src="changelog.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

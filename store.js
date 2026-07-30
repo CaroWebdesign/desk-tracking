@@ -1,14 +1,45 @@
 // Datenschicht: lädt und speichert Sitzungen, Logs und Einstellungen in einer
-// JSON-Datei im Datenordner („Dokumente\Stempeluhr"). Keine native DB nötig.
+// JSON-Datei im Datenordner („Dokumente\Desk Tracking"). Keine native DB nötig.
 const fs = require('fs');
 const path = require('path');
+
+// Verfügbare Designs (Caro CI v1: hell und dunkel)
+const THEMES = ['caro-dark', 'caro-light'];
 
 const DEFAULT_SETTINGS = {
   targetHoursPerDay: 8,   // Soll-Stunden pro Tag (Stunden, dezimal erlaubt)
   targetDaysPerWeek: 5,   // Arbeitstage pro Woche
   roundingMinutes: 0,     // Anzeige-Rundung der Netto-Zeit (0 = aus)
   activeProjectId: null,  // aktuell für neue Stempelungen gewähltes Projekt
+  theme: 'caro-dark',     // 'caro-dark' | 'caro-light'
+  notify: true,           // Erinnerung an Termine als Windows-Benachrichtigung
+  notifyBefore: 10,       // Minuten Vorlauf (0 = genau zur Uhrzeit)
+  hotkeyEnabled: false,   // systemweites Tastenkürzel zum Hervorholen
+  // Bewusst mit Umschalt: ein reines Strg+T würde Browsern den neuen Tab wegnehmen
+  hotkey: 'Control+Shift+T',
+  miniEnabled: true,      // kleines Bedienfeld, wenn das Fenster minimiert ist
+  miniPosition: 'br',     // 'br' = unten rechts, 'bl' = unten links
+  language: 'de',         // Sprache der Oberfläche
+  dateFormat: 'dd.MM.yyyy', // Darstellung von Datumsangaben
+  shortYear: false,       // Jahr zweistellig statt vierstellig
 };
+
+// Verfügbare Sprachen (Oberfläche)
+const LANGUAGES = ['de', 'en', 'fr', 'es', 'ja', 'zh'];
+
+// Erlaubte Datumsmuster. „EEE" = Wochentag kurz, „MMMM" = Monatsname.
+const DATE_FORMATS = [
+  'dd.MM.yyyy',
+  'yyyy-MM-dd',
+  'dd/MM/yyyy',
+  'MM/dd/yyyy',
+  'd. MMMM yyyy',
+  'EEE dd.MM.yyyy',
+  'EEE, d. MMMM yyyy',
+];
+
+// Erlaubte Positionen des Mini-Bedienfelds
+const MINI_POSITIONS = ['br', 'bl'];
 
 // Sammelprojekt für Altdaten und projektlose Stempelungen
 const DEFAULT_PROJECT_ID = 'allgemein';
@@ -36,6 +67,7 @@ class Store {
     const data = {
       projects: Array.isArray(parsed.projects) ? parsed.projects : [],
       sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
+      events: Array.isArray(parsed.events) ? parsed.events : [],
       logs: Array.isArray(parsed.logs) ? parsed.logs : [],
       settings: Object.assign({}, DEFAULT_SETTINGS, parsed.settings || {}),
     };
@@ -61,6 +93,11 @@ class Store {
     }
     if (!data.settings.activeProjectId || !ids.has(data.settings.activeProjectId)) {
       data.settings.activeProjectId = def.id;
+    }
+    // Termine dürfen projektlos sein („Sonstiges"); ein gelöschtes Projekt
+    // wird dabei zu „Sonstiges", damit kein toter Verweis bleibt.
+    for (const e of data.events) {
+      if (!e.projectId || !ids.has(e.projectId)) e.projectId = '';
     }
   }
 
@@ -209,6 +246,14 @@ class Store {
       for (const s of affected) s.projectId = target.id;
       this._log('Einträge umgebucht', `${affected.length}× ${p.name} → ${target.name}`);
     }
+    // Termine des Projekts fallen auf „Sonstiges" zurück – ein toter Verweis
+    // würde sonst als „—" in Oberfläche, CSV und PDF auftauchen.
+    let termine = 0;
+    for (const e of this.data.events) {
+      if (e.projectId === id) { e.projectId = ''; termine++; }
+    }
+    if (termine) this._log('Termine gelöst', `${termine}× ${p.name} → Sonstiges`);
+
     this.data.projects = this.data.projects.filter((x) => x.id !== id);
     if (this.data.settings.activeProjectId === id) {
       this.data.settings.activeProjectId = this.data.projects[0].id;
@@ -302,15 +347,14 @@ class Store {
     if (!rawDate || !clockIn || !clockOut) throw new Error('Bitte Datum, Kommen und Gehen ausfüllen.');
     const date = normDateKey(rawDate);
     const inD = buildLocal(date, clockIn);
-    const outD = buildLocal(date, clockOut);
-    if (isNaN(+inD) || isNaN(+outD)) throw new Error('Ungültige Zeitangabe.');
-    if (outD <= inD) throw new Error('„Gehen" muss nach „Kommen" liegen.');
+    checkExists(inD, date, clockIn);
+    const end = buildEnd(date, inD, clockOut);
 
     const pid = this._resolveProjectId(projectId);
     const session = {
       id: newId(), projectId: pid, date,
       clockIn: inD.toISOString(),
-      clockOut: outD.toISOString(),
+      clockOut: end.at.toISOString(),
       breaks: [],
     };
     for (const b of breaks) {
@@ -318,7 +362,8 @@ class Store {
       session.breaks.push(this._mkBreak(session, b.start, b.end));
     }
     this.data.sessions.push(session);
-    this._log('Block hinzugefügt', `${date} ${clockIn}–${clockOut} · ${this._projectName(pid)}`
+    this._log('Block hinzugefügt',
+      `${date} ${clockIn}–${clockOut}${end.overnight ? ' (Folgetag)' : ''} · ${this._projectName(pid)}`
       + (session.breaks.length ? `, ${session.breaks.length} Pause(n)` : ''));
     this._save();
     return session;
@@ -342,11 +387,14 @@ class Store {
     checkExists(inD, newDate, clockIn);
     let outISO = null;
     if (clockOut) {
-      const outD = buildLocal(newDate, clockOut);
-      checkExists(outD, newDate, clockOut);
-      if (outD <= inD) throw new Error('„Gehen" muss nach „Kommen" liegen.');
-      outISO = outD.toISOString();
+      // „Gehen" vor „Kommen" heißt: die Schicht geht über Mitternacht.
+      outISO = buildEnd(newDate, inD, clockOut).at.toISOString();
     } else {
+      // Eine bereits beendete Sitzung darf nicht wieder geöffnet werden. Sonst
+      // könnte ein veraltetes Fenster ein zwischenzeitliches „Gehen" aufheben.
+      if (s.clockOut) {
+        throw new Error('Diese Sitzung ist bereits beendet – bitte „Gehen" angeben.');
+      }
       // Offen lassen darf nur der heutige Tag – sonst würde ein alter Eintrag
       // als „läuft seit damals" gelten und die Arbeitszeit explodieren.
       if (newDate !== localDateKey(new Date())) {
@@ -359,12 +407,14 @@ class Store {
 
     // Immer mit einer Kopie arbeiten, damit ein Fehler weiter unten die
     // gespeicherten Pausen nicht halb verändert zurücklässt.
-    // Beim Tageswechsel wandern die Pausen zur selben Uhrzeit mit – sekunden-
-    // genau, damit sich die Netto-Zeit durch das Verschieben nicht ändert.
-    const breaks = s.breaks.map((b) => (dateChanged
+    // Beim Tageswechsel wandern die Pausen um dieselbe Anzahl Kalendertage mit –
+    // sekundengenau und unter Beibehaltung ihrer Lage. Eine Pause nach
+    // Mitternacht bleibt dadurch auch nach dem Verschieben nach Mitternacht.
+    const versatz = dateChanged ? dayDiff(s.date, newDate) : 0;
+    const breaks = s.breaks.map((b) => (versatz
       ? {
-        start: moveToDate(b.start, newDate).toISOString(),
-        end: b.end ? moveToDate(b.end, newDate).toISOString() : null,
+        start: shiftDays(b.start, versatz).toISOString(),
+        end: b.end ? shiftDays(b.end, versatz).toISOString() : null,
       }
       : { start: b.start, end: b.end }));
 
@@ -409,15 +459,33 @@ class Store {
   }
 
   // ---- Pausen einzeln bearbeiten ----
+  // Eine Pause wird nur über die Uhrzeit angegeben. Bei einer Schicht über
+  // Mitternacht wird sie dem Tag zugeordnet, an dem sie tatsächlich liegt:
+  // eine Pause um 01:00 bei einer Schicht 22:00–06:00 gehört zum Folgetag.
   _mkBreak(session, startHHMM, endHHMM) {
     if (!startHHMM || !endHHMM) throw new Error('Pause: bitte „von" und „bis" angeben.');
-    const bs = buildLocal(session.date, startHHMM);
-    const be = buildLocal(session.date, endHHMM);
-    if (isNaN(+bs) || isNaN(+be)) throw new Error('Ungültige Pausenzeit.');
-    if (be <= bs) throw new Error('Pausenende muss nach Pausenbeginn liegen.');
-    const lo = new Date(session.clockIn).getTime();
-    const hi = session.clockOut ? new Date(session.clockOut).getTime() : Date.now();
-    if (bs.getTime() < lo || be.getTime() > hi) {
+    const lo = new Date(session.clockIn);
+    const hi = session.clockOut ? new Date(session.clockOut) : new Date();
+
+    let startDate = session.date;
+    let bs = buildLocal(startDate, startHHMM);
+    checkExists(bs, startDate, startHHMM);
+    // Liegt die Uhrzeit vor dem Schichtbeginn, ist der Folgetag gemeint
+    if (bs < lo && hi > buildLocal(nextDay(session.date), '00:00')) {
+      startDate = nextDay(session.date);
+      bs = buildLocal(startDate, startHHMM);
+      checkExists(bs, startDate, startHHMM);
+    }
+
+    let be = buildLocal(startDate, endHHMM);
+    checkExists(be, startDate, endHHMM);
+    if (be <= bs) {
+      const endDate = nextDay(startDate);
+      be = buildLocal(endDate, endHHMM);
+      checkExists(be, endDate, endHHMM);
+    }
+
+    if (bs < lo || be > hi) {
       throw new Error('Pause muss zwischen Kommen und Gehen liegen.');
     }
     return { start: bs.toISOString(), end: be.toISOString() };
@@ -454,6 +522,74 @@ class Store {
     return s;
   }
 
+  // ---- Termine und Notizen ----
+  // Ein Termin: { id, date:'YYYY-MM-DD', time:'HH:MM'|'', title, note }
+  // Ohne Uhrzeit gilt er als ganztägig – praktisch für reine Notizen.
+  getEvents() { return this.data.events; }
+
+  _findEvent(id) {
+    const e = this.data.events.find((x) => x.id === id);
+    if (!e) throw new Error('Termin nicht gefunden.');
+    return e;
+  }
+
+  _normEvent({ date, time, title, note, projectId }) {
+    const d = normDateKey(date);
+    let t = String(time || '').trim();
+    if (t) {
+      const teile = /^(\d{1,2}):(\d{2})$/.exec(t);
+      if (!teile) throw new Error('Bitte eine gültige Uhrzeit angeben (z. B. 09:30).');
+      const hh = Number(teile[1]), mm = Number(teile[2]);
+      if (hh > 23 || mm > 59) throw new Error('Bitte eine gültige Uhrzeit angeben (z. B. 09:30).');
+      t = String(hh).padStart(2, '0') + ':' + teile[2];
+    }
+    const ti = String(title || '').trim();
+    if (!ti) throw new Error('Bitte einen Titel für den Termin angeben.');
+    if (ti.length > 120) throw new Error('Der Titel ist zu lang (max. 120 Zeichen).');
+    const no = String(note || '');
+    if (no.length > 4000) throw new Error('Die Notiz ist zu lang (max. 4000 Zeichen).');
+    // Projekt ist optional – leer bedeutet „Sonstiges". Ein Projekt, das es
+    // nicht (mehr) gibt, wird ebenfalls zu „Sonstiges".
+    let pid = projectId ? String(projectId) : '';
+    if (pid && !this.data.projects.some((p) => p.id === pid)) pid = '';
+    return { date: d, time: t, title: ti, note: no, projectId: pid };
+  }
+
+  addEvent(entry) {
+    const e = this._normEvent(entry || {});
+    const event = Object.assign({ id: newId() }, e);
+    this.data.events.push(event);
+    this._sortEvents();
+    this._log('Termin angelegt', `${event.date}${event.time ? ' ' + event.time : ''}: ${event.title}`);
+    this._save();
+    return event;
+  }
+
+  updateEvent(id, patch) {
+    const e = this._findEvent(id);
+    const next = this._normEvent(Object.assign({}, e, patch || {}));
+    Object.assign(e, next);
+    this._sortEvents();
+    this._log('Termin geändert', `${e.date}${e.time ? ' ' + e.time : ''}: ${e.title}`);
+    this._save();
+    return e;
+  }
+
+  deleteEvent(id) {
+    const e = this._findEvent(id);
+    this.data.events = this.data.events.filter((x) => x.id !== id);
+    this._log('Termin gelöscht', `${e.date}${e.time ? ' ' + e.time : ''}: ${e.title}`);
+    this._save();
+    return true;
+  }
+
+  // Chronologisch: erst nach Datum, dann nach Uhrzeit (ganztägig zuerst)
+  _sortEvents() {
+    this.data.events.sort((a, b) => (a.date === b.date
+      ? String(a.time || '').localeCompare(String(b.time || ''))
+      : a.date.localeCompare(b.date)));
+  }
+
   // ---- Einstellungen ----
   getSettings() { return this.data.settings; }
 
@@ -478,11 +614,41 @@ class Store {
     if (p.roundingMinutes !== undefined) {
       next.roundingMinutes = Math.round(num(p.roundingMinutes, 0, 60, 'Rundung'));
     }
+    if (p.theme !== undefined) {
+      if (!THEMES.includes(p.theme)) throw new Error('Unbekanntes Design.');
+      next.theme = p.theme;
+    }
+    if (p.notify !== undefined) next.notify = !!p.notify;
+    if (p.notifyBefore !== undefined) {
+      next.notifyBefore = Math.round(num(p.notifyBefore, 0, 240, 'Vorlaufzeit'));
+    }
+    if (p.hotkeyEnabled !== undefined) next.hotkeyEnabled = !!p.hotkeyEnabled;
+    if (p.hotkey !== undefined) next.hotkey = normHotkey(p.hotkey);
+    if (p.miniEnabled !== undefined) next.miniEnabled = !!p.miniEnabled;
+    if (p.miniPosition !== undefined) {
+      if (!MINI_POSITIONS.includes(p.miniPosition)) throw new Error('Unbekannte Position.');
+      next.miniPosition = p.miniPosition;
+    }
+    if (p.language !== undefined) {
+      if (!LANGUAGES.includes(p.language)) throw new Error('Unbekannte Sprache.');
+      next.language = p.language;
+    }
+    if (p.dateFormat !== undefined) {
+      if (!DATE_FORMATS.includes(p.dateFormat)) throw new Error('Unbekanntes Datumsformat.');
+      next.dateFormat = p.dateFormat;
+    }
+    if (p.shortYear !== undefined) next.shortYear = !!p.shortYear;
     this.data.settings = next;
-    this._log('Einstellungen geändert',
-      `Soll/Tag ${this.data.settings.targetHoursPerDay} h, `
-      + `Tage/Woche ${this.data.settings.targetDaysPerWeek}, `
-      + `Rundung ${this.data.settings.roundingMinutes} min`);
+    // Ein reiner Designwechsel muss das Protokoll nicht füllen
+    const nurTheme = Object.keys(p).length === 1 && p.theme !== undefined;
+    if (!nurTheme) {
+      this._log('Einstellungen geändert',
+        `Soll/Tag ${this.data.settings.targetHoursPerDay} h, `
+        + `Tage/Woche ${this.data.settings.targetDaysPerWeek}, `
+        + `Rundung ${this.data.settings.roundingMinutes} min, `
+        + `Erinnerung ${this.data.settings.notify
+          ? this.data.settings.notifyBefore + ' min vorher' : 'aus'}`);
+    }
     this._save();
     return this.data.settings;
   }
@@ -502,6 +668,80 @@ class Store {
 // ---- Helfer ----
 function newId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+// Wie lange nach dem Fälligkeitszeitpunkt eine Erinnerung noch gezeigt wird
+const MELDE_FENSTER_MS = 10 * 60000;
+
+// Ist eine Erinnerung für diesen Termin jetzt fällig?
+// Bewusst hier statt im Hauptprozess, damit die Zeitrechnung testbar ist.
+//   jetztMs  – aktuelle Zeit
+//   vorlaufMin – Minuten Vorlauf aus den Einstellungen
+// Das Fenster reicht bis mindestens zur echten Terminzeit: startet die App
+// innerhalb der Vorlaufzeit, geht die Erinnerung dadurch nicht verloren.
+function terminFaellig(event, jetztMs, vorlaufMin) {
+  if (!event || !event.date) return false;
+  if (!event.time) {
+    // Ganztägig: nur am Tag selbst, ab dem Moment, in dem die App läuft
+    return event.date === localDateKey(new Date(jetztMs));
+  }
+  const [hh, mm] = String(event.time).split(':').map(Number);
+  const [y, mo, d] = String(event.date).split('-').map(Number);
+  const terminMs = new Date(y, mo - 1, d, hh, mm, 0, 0).getTime();
+  const ab = terminMs - (Number(vorlaufMin) || 0) * 60000;
+  const bis = Math.max(ab + MELDE_FENSTER_MS, terminMs);
+  return jetztMs >= ab && jetztMs <= bis;
+}
+
+// Termin liegt so weit zurück, dass beim Programmstart nicht mehr erinnert wird
+function terminVerpasst(event, jetztMs) {
+  if (!event || !event.time) return false;
+  const [hh, mm] = String(event.time).split(':').map(Number);
+  const [y, mo, d] = String(event.date).split('-').map(Number);
+  return new Date(y, mo - 1, d, hh, mm).getTime() + MELDE_FENSTER_MS < jetztMs;
+}
+
+// Kennzeichen einer Erinnerung: ändert sich Datum oder Uhrzeit, wird erneut
+// erinnert – sonst bliebe ein verschobener Termin für immer stumm.
+function terminSchluessel(event) {
+  return `${event.id}|${event.date}|${event.time || ''}`;
+}
+
+// Prüft ein Tastenkürzel im Electron-Format (z. B. 'Control+Shift+T').
+// Verlangt mindestens eine Zusatztaste und genau eine Haupttaste – sonst
+// ließe sich versehentlich eine einzelne Buchstabentaste systemweit belegen.
+const HOTKEY_MODS = ['Control', 'Alt', 'Shift', 'Super', 'CommandOrControl'];
+const HOTKEY_KEYS = /^(?:[A-Z0-9]|F[1-9]|F1[0-2]|Space|Tab|Backspace|Delete|Insert|Home|End|PageUp|PageDown|Up|Down|Left|Right|Plus|Minus)$/;
+// Kombinationen, die Windows braucht – die wollen wir nicht wegnehmen
+const HOTKEY_TABU = ['Alt+F4', 'Alt+Tab', 'Control+Alt+Delete', 'Control+Shift+Escape'];
+
+function normHotkey(value) {
+  const teile = String(value || '').split('+').map((t) => t.trim()).filter(Boolean);
+  if (teile.length < 2) {
+    throw new Error('Das Kürzel braucht mindestens eine Zusatztaste, z. B. Strg + T.');
+  }
+  const mods = [];
+  let key = null;
+  for (const t of teile) {
+    const mod = HOTKEY_MODS.find((m) => m.toLowerCase() === t.toLowerCase());
+    if (mod) {
+      if (!mods.includes(mod)) mods.push(mod);
+      continue;
+    }
+    const k = t.length === 1 ? t.toUpperCase() : t;
+    if (!HOTKEY_KEYS.test(k)) throw new Error(`Die Taste „${t}" lässt sich nicht als Kürzel verwenden.`);
+    if (key) throw new Error('Bitte nur eine Haupttaste angeben.');
+    key = k;
+  }
+  if (!mods.length) throw new Error('Das Kürzel braucht mindestens eine Zusatztaste, z. B. Strg + T.');
+  if (!key) throw new Error('Bitte eine Taste zum Kürzel hinzufügen.');
+  // Reihenfolge festlegen, damit gespeicherte Kürzel vergleichbar bleiben
+  const sortiert = HOTKEY_MODS.filter((m) => mods.includes(m));
+  const acc = [...sortiert, key].join('+');
+  if (HOTKEY_TABU.includes(acc)) {
+    throw new Error(`„${acc}" wird von Windows gebraucht – bitte eine andere Kombination wählen.`);
+  }
+  return acc;
 }
 
 // Prüft ein Datum 'YYYY-MM-DD' und gibt es normalisiert zurück.
@@ -531,12 +771,49 @@ function checkExists(dt, dateStr, timeStr) {
   }
 }
 
-// Verschiebt einen Zeitpunkt auf ein anderes Datum und behält die Uhrzeit
-// exakt bei – inklusive Sekunden und Millisekunden.
-function moveToDate(iso, dateStr) {
+// Verschiebt einen Zeitpunkt um n Kalendertage und behält die Uhrzeit exakt bei –
+// inklusive Sekunden. Kalendarisch statt „+24 h", damit die Zeitumstellung
+// die Uhrzeit nicht verrutschen lässt.
+function shiftDays(iso, days) {
   const d = new Date(iso);
-  const [y, m, day] = String(dateStr).split('-').map(Number);
-  return new Date(y, m - 1, day, d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds());
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + days,
+    d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds());
+}
+
+// Der Kalendertag nach dateStr ('YYYY-MM-DD')
+function nextDay(dateStr) {
+  const [y, m, d] = String(dateStr).split('-').map(Number);
+  return localDateKey(new Date(y, m - 1, d + 1));
+}
+
+// Anzahl Kalendertage zwischen zwei Datums-Schlüsseln (b − a)
+function dayDiff(a, b) {
+  const [ay, am, ad] = String(a).split('-').map(Number);
+  const [by, bm, bd] = String(b).split('-').map(Number);
+  const da = Date.UTC(ay, am - 1, ad);
+  const db = Date.UTC(by, bm - 1, bd);
+  return Math.round((db - da) / 86400000);
+}
+
+// Baut das „Gehen" zu einem „Kommen". Liegt die Uhrzeit nicht nach dem Beginn,
+// gehört sie zum Folgetag – so lassen sich Nachtschichten über Mitternacht
+// als EIN Eintrag erfassen (z. B. 22:00 bis 06:00).
+function buildEnd(dateStr, inD, outHM) {
+  let outD = buildLocal(dateStr, outHM);
+  checkExists(outD, dateStr, outHM);
+  if (outD.getTime() === inD.getTime()) {
+    throw new Error('„Kommen" und „Gehen" dürfen nicht dieselbe Uhrzeit sein.');
+  }
+  let endDate = dateStr;
+  if (outD < inD) {
+    endDate = nextDay(dateStr);
+    outD = buildLocal(endDate, outHM);
+    checkExists(outD, endDate, outHM);
+  }
+  if (outD - inD > 24 * 3600000) {
+    throw new Error('Ein Eintrag darf höchstens 24 Stunden umfassen.');
+  }
+  return { date: endDate, at: outD, overnight: endDate !== dateStr };
 }
 
 // 'HH:MM' aus Date (lokal)
@@ -552,4 +829,7 @@ function localDateKey(d) {
   return `${y}-${m}-${day}`;
 }
 
-module.exports = { Store, localDateKey };
+module.exports = {
+  Store, localDateKey, terminFaellig, terminVerpasst, terminSchluessel, MELDE_FENSTER_MS,
+  LANGUAGES, DATE_FORMATS,
+};

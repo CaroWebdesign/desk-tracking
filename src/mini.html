@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
+  <title>Desk Tracking</title>
+  <link rel="stylesheet" href="mini.css" />
+</head>
+<body data-theme="caro-dark">
+
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5Z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 4.5v15M15 4.5v15"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="5.5" y="5.5" width="13" height="13" rx="2"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6"/><path d="M21 3l-7.5 7.5M3 21l7.5-7.5"/></symbol>
+  </svg>
+
+  <div class="mini" id="mini">
+    <!-- Kopfzeile: zugleich Griff zum Verschieben -->
+    <div class="mini-head" id="miniDrag">
+      <span id="miniDot" class="dot dot-off"></span>
+      <span id="miniStatus" class="mini-status" data-i18n="status.off">Nicht eingestempelt</span>
+      <span id="miniTime" class="mini-time">00:00:00</span>
+      <button id="miniOpen" class="mini-icon" data-i18n-title="mini.openWindow" title="Fenster öffnen">
+        <svg class="ico"><use href="#i-expand"/></svg>
+      </button>
+    </div>
+
+    <select id="miniProject" class="mini-select" data-i18n-title="mini.projectTitle"
+      title="Projekt für die nächste Stempelung"></select>
+
+    <div class="mini-buttons">
+      <button id="miniIn" class="mini-btn m-green" data-i18n-title="erf.in" title="Kommen">
+        <svg class="ico"><use href="#i-play"/></svg><span data-i18n="erf.in">Kommen</span>
+      </button>
+      <button id="miniBreak" class="mini-btn m-amber" data-i18n-title="erf.breakStart" title="Pause starten">
+        <svg class="ico"><use href="#i-pause"/></svg><span data-i18n="mini.break">Pause</span>
+      </button>
+      <button id="miniOut" class="mini-btn m-red" data-i18n-title="erf.out" title="Gehen">
+        <svg class="ico"><use href="#i-stop"/></svg><span data-i18n="erf.out">Gehen</span>
+      </button>
+    </div>
+
+    <div id="miniMsg" class="mini-msg"></div>
+  </div>
+
+  <script src="i18n.js"></script>
+  <script src="mini.js"></script>
+</body>
+</html>

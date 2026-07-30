@@ -1,15 +1,15 @@
 {
-  "name": "stempeluhr",
-  "version": "1.2.1",
-  "description": "Einfache Stempeluhr (Zeiterfassung) als Windows-Desktop-App",
+  "name": "desk-tracking",
+  "version": "1.8.0",
+  "description": "Desk Tracking – einfache Zeiterfassung als Windows-Desktop-App",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node test-store.js",
+    "test": "node test-store.js && node test-i18n.js",
     "dist": "electron-builder",
     "release": "electron-builder --win --publish always"
   },
-  "author": "caro-webdesign",
+  "author": "CaroWebAgentur",
   "license": "MIT",
   "devDependencies": {
     "electron": "^33.2.0",
@@ -19,11 +19,11 @@
   },
   "build": {
     "appId": "de.carowebdesign.stempeluhr",
-    "productName": "Stempeluhr",
+    "productName": "Desk Tracking",
     "publish": [
       {
         "provider": "github",
-        "owner": "CaroWebdesign",
+        "owner": "CaroWebAgentur",
         "repo": "desk-tracking",
         "releaseType": "release"
       }
@@ -33,6 +33,7 @@
       "preload.js",
       "store.js",
       "icon.ico",
+      "icon.png",
       "src/**/*"
     ],
     "win": {
@@ -44,10 +45,10 @@
       "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Stempeluhr",
+      "shortcutName": "Desk Tracking",
       "deleteAppDataOnUninstall": false,
       "include": "build/installer.nsh",
-      "artifactName": "Stempeluhr-Setup-${version}.${ext}"
+      "artifactName": "Desk-Tracking-Setup-${version}.${ext}"
     },
     "directories": {
       "output": "dist"
