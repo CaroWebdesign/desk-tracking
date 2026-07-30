@@ -1755,6 +1755,7 @@ async function fillSettings() {
   setHotkeyFeld(s.hotkey || 'Control+Shift+T');
   setSegmented('setMiniEnabled', s.miniEnabled === false ? 0 : 1);
   setSegmented('setMiniPosition', s.miniPosition || 'br');
+  setSegmented('setTrayOnClose', s.trayOnClose ? 1 : 0);
   setSegmented('setAutoUpdate', s.autoUpdate === false ? 0 : 1);
   const info = await window.api.dataInfo();
   if (info.ok) {
@@ -2270,6 +2271,15 @@ window.addEventListener('DOMContentLoaded', () => {
   $('miniPreview').addEventListener('click', async () => {
     const res = await window.api.previewMini();
     if (!res.ok) toast(tErr(res.error), { kind: 'info' });
+  });
+
+  // Verhalten beim Schließen des Fensters
+  $('traySave').addEventListener('click', async () => {
+    const an = getSegmented('setTrayOnClose') === '1';
+    const res = await window.api.updateSettings({ trayOnClose: an });
+    if (!res.ok) { toast(tErr(res.error), { kind: 'error' }); return; }
+    await refresh();
+    toast(an ? t('set.traySavedOn') : t('set.traySavedOff'), { kind: 'ok' });
   });
 
   // Rückfrage vor dem Löschen

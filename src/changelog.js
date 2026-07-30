@@ -10,6 +10,42 @@
 
 const CHANGELOG = [
   {
+    version: '1.10.0',
+    datum: '2026-07-31',
+    punkte: {
+      de: [
+        'Das Fenster lässt sich schließen, ohne die App zu beenden: sie läuft dann mit einem Symbol im Infobereich der Taskleiste weiter, neben Uhr und WLAN. Einzuschalten unter „Einstellungen → Schnellzugriff → Beim Schließen".',
+        'Eine laufende Erfassung zählt dabei weiter. Ein Klick auf das Symbol holt das Fenster zurück, das Menü der rechten Maustaste beendet die App wirklich.',
+        'Das Mini-Bedienfeld hat jetzt ein X. Läuft die App im Infobereich weiter, blendet es nur aus – sonst fragt es vorher, ob die laufende Erfassung noch gestempelt und gespeichert werden soll.',
+      ],
+      en: [
+        'The window can be closed without quitting the app: it keeps running with an icon in the notification area of the taskbar, next to the clock and Wi-Fi. Switch it on under “Settings → Quick access → When closing”.',
+        'A running entry keeps counting. Click the icon to bring the window back; the right-click menu quits for real.',
+        'The mini panel now has an X. If the app keeps running in the notification area, it only hides – otherwise it asks first whether the running entry should be clocked out and saved.',
+      ],
+      fr: [
+        'La fenêtre peut être fermée sans quitter l’application : elle continue avec une icône dans la zone de notification de la barre des tâches, à côté de l’horloge et du Wi-Fi. À activer sous « Réglages → Accès rapide → À la fermeture ».',
+        'Un pointage en cours continue de compter. Un clic sur l’icône ramène la fenêtre ; le menu du clic droit quitte vraiment.',
+        'Le mini-panneau a maintenant une croix. Si l’application continue dans la zone de notification, elle ne fait que masquer – sinon elle demande d’abord si le pointage en cours doit être clôturé et enregistré.',
+      ],
+      es: [
+        'La ventana se puede cerrar sin terminar la aplicación: sigue funcionando con un icono en el área de notificación de la barra de tareas, junto al reloj y el wifi. Se activa en «Ajustes → Acceso rápido → Al cerrar».',
+        'Un fichaje en curso sigue contando. Un clic en el icono devuelve la ventana; el menú del botón derecho la cierra de verdad.',
+        'El mini panel ahora tiene una X. Si la aplicación sigue en el área de notificación, solo se oculta; si no, pregunta antes si el fichaje en curso debe cerrarse y guardarse.',
+      ],
+      ja: [
+        'ウィンドウを閉じてもアプリを終了しないようにできます。時計や Wi-Fi の隣、タスクバーの通知領域にアイコンが残って動き続けます。「設定 → クイックアクセス → 閉じたとき」で有効にします。',
+        '記録中の時間はそのまま進みます。アイコンをクリックするとウィンドウが戻り、右クリックのメニューから本当に終了できます。',
+        'ミニ操作パネルに × が付きました。通知領域で動き続ける設定なら隠すだけ、そうでなければ記録を打刻して保存するかを先に確認します。',
+      ],
+      zh: [
+        '现在可以关闭窗口而不退出程序：它会在任务栏通知区域（时钟和无线网络旁边）留下一个图标继续运行。在“设置 → 快捷操作 → 关闭时”开启。',
+        '正在进行的记录会继续计时。点击图标可以把窗口找回来，右键菜单才是真正退出。',
+        '迷你面板多了一个 ×。如果程序在通知区域继续运行，它只是隐藏；否则会先询问是否要为正在进行的记录打卡下班并保存。',
+      ],
+    },
+  },
+  {
     version: '1.9.0',
     datum: '2026-07-30',
     punkte: {

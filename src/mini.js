@@ -131,6 +131,13 @@ window.addEventListener('DOMContentLoaded', () => {
     await window.api.setActiveProject($('miniProject').value);
   });
   $('miniOpen').addEventListener('click', () => window.api.showMainWindow());
+  // Schließen: läuft die App im Infobereich weiter, verschwindet nur das Feld.
+  // Sonst entscheidet der Hauptprozess per Rückfrage über eine laufende
+  // Erfassung – hier kommt dann nur noch eine mögliche Fehlermeldung an.
+  $('miniClose').addEventListener('click', async () => {
+    const res = await window.api.miniClose();
+    if (!res.ok) msg(tErr(res.error), 'error');
+  });
 
   // Änderungen aus dem Hauptfenster übernehmen
   window.api.onDataChanged(refresh);

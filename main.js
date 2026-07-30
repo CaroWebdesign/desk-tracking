@@ -1,5 +1,6 @@
 const {
   app, BrowserWindow, ipcMain, dialog, shell, Notification, globalShortcut, screen,
+  Tray, Menu,
 } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -51,6 +52,14 @@ if (!app.requestSingleInstanceLock()) {
 let store;
 let mainWindow;
 let miniWindow;
+let tray = null;
+// Unterscheidet „Fenster zu" von „App beenden". Ohne diese Marke würde auch
+// das Beenden aus dem Tray-Menü heraus nur wieder das Fenster verstecken.
+let beendenGewollt = false;
+// Der Hinweis „läuft im Hintergrund weiter" erscheint einmal je Programmlauf.
+// Beim ersten Mal ist er nötig, sonst hält man die App für beendet; jedes Mal
+// wäre er Belästigung.
+let trayHinweisGezeigt = false;
 let dataDirPath;
 let hotkeyAktiv = null; // aktuell registriertes Tastenkürzel
 let updateVersion = null;      // Version des gefundenen/geladenen Updates
@@ -176,6 +185,22 @@ function createWindow() {
   mainWindow.on('minimize', () => { if (store.getSettings().miniEnabled) openMini(); });
   mainWindow.on('restore', closeMini);
   mainWindow.on('focus', closeMini);
+
+  // Schließen heißt nicht zwingend beenden: ist „im Infobereich weiterlaufen"
+  // eingeschaltet, wird das Fenster nur versteckt. Eine laufende Erfassung
+  // läuft dabei weiter – deshalb ist hier keine Rückfrage nötig.
+  mainWindow.on('close', (e) => {
+    if (beendenGewollt || !store.getSettings().trayOnClose) return;
+    zeigeTray();
+    // Ließ sich kein Symbol anlegen, bleibt es beim Beenden: eine versteckte
+    // App ohne Symbol wäre nur noch über den Task-Manager zu erwischen.
+    if (!tray) return;
+    e.preventDefault();
+    closeMini();
+    mainWindow.hide();
+    trayHinweis();
+  });
+
   mainWindow.on('closed', () => { closeMini(); mainWindow = null; });
 }
 
@@ -229,6 +254,105 @@ function openMini() {
 function closeMini() {
   if (miniWindow && !miniWindow.isDestroyed()) miniWindow.destroy();
   miniWindow = null;
+}
+
+// ---- Symbol im Infobereich der Taskleiste ----
+// Neben Uhr und WLAN-Symbol, wie bei OneDrive. Es ist die einzige sichtbare
+// Spur einer App ohne Fenster – ohne dieses Symbol wäre sie unerreichbar und
+// ließe sich nur noch über den Task-Manager beenden. Es erscheint deshalb,
+// sobald die Einstellung an ist, und nicht erst beim Schließen.
+function trayBild() {
+  return path.join(__dirname, process.platform === 'win32' ? 'icon.ico' : 'icon.png');
+}
+
+// Zustand in einem Satz – für Sprechblase und erste Menüzeile. Bewusst
+// dieselben Texte wie im Mini-Bedienfeld: derselbe Zustand soll überall
+// gleich heißen.
+function trayStatus() {
+  try {
+    const offen = store.getOpenSession();
+    if (!offen) return t('status.off');
+    const projekt = (store.getProjects().find((p) => p.id === offen.projectId) || {}).name || '';
+    const pause = offen.breaks.some((b) => b.end === null);
+    return pause ? t('mini.statusBreak', projekt) : t('mini.statusOn', projekt);
+  } catch (e) {
+    return t('status.off');
+  }
+}
+
+// Windows liest „&" in einem Menüeintrag als Tastenkürzel und zeigt es nicht
+// an: aus dem Projekt „Meier & Sohn" würde „Meier Sohn" mit unterstrichenem S.
+// Verdoppelt bleibt das Zeichen stehen.
+function menueText(text) {
+  return String(text).replace(/&/g, '&&');
+}
+
+function trayMenue() {
+  const eintraege = [
+    { label: menueText(trayStatus()), enabled: false },
+    { type: 'separator' },
+    { label: t('mini.openWindow'), click: zeigeHauptfenster },
+  ];
+  // Ohne Mini-Bedienfeld führt der Eintrag ins Leere
+  if (store.getSettings().miniEnabled) {
+    eintraege.push({ label: t('tray.mini'), click: () => openMini() });
+  }
+  eintraege.push({ type: 'separator' }, { label: t('tray.quit'), click: beendeApp });
+  return Menu.buildFromTemplate(eintraege);
+}
+
+function zeigeTray() {
+  if (tray && !tray.isDestroyed()) { aktualisiereTray(); return; }
+  try {
+    tray = new Tray(trayBild());
+  } catch (e) {
+    // Ohne Symbol darf die App nicht unsichtbar weiterlaufen – dann lieber
+    // beim gewohnten Verhalten bleiben.
+    updateLog('Symbol im Infobereich nicht möglich: ' + e.message);
+    tray = null;
+    return;
+  }
+  tray.on('click', zeigeHauptfenster);
+  tray.on('double-click', zeigeHauptfenster);
+  aktualisiereTray();
+}
+
+// Sprechblase, Menütext und Zustandszeile hängen an den Daten und an der
+// Sprache – beides ändert sich im Betrieb.
+function aktualisiereTray() {
+  if (!tray || tray.isDestroyed()) return;
+  try {
+    tray.setToolTip('Desk Tracking – ' + trayStatus());
+    tray.setContextMenu(trayMenue());
+  } catch (e) {
+    updateLog('Tray-Menü nicht aktualisiert: ' + e.message);
+  }
+}
+
+function entferneTray() {
+  if (tray && !tray.isDestroyed()) tray.destroy();
+  tray = null;
+}
+
+// Einmal je Programmlauf: wohin das Fenster verschwunden ist.
+function trayHinweis() {
+  if (trayHinweisGezeigt || !Notification.isSupported()) return;
+  trayHinweisGezeigt = true;
+  try {
+    new Notification({
+      title: t('tray.hintTitle'),
+      body: t('tray.hintBody'),
+      icon: path.join(__dirname, 'icon.png'),
+      silent: true,
+    }).show();
+  } catch (e) { /* ein Hinweis darf nie den Betrieb stören */ }
+}
+
+// Wirklich beenden – nicht nur das Fenster verstecken.
+function beendeApp() {
+  beendenGewollt = true;
+  entferneTray();
+  app.quit();
 }
 
 // Hauptfenster hervorholen (aus dem Mini-Feld oder per Tastenkürzel)
@@ -288,6 +412,8 @@ function broadcastChanged() {
   for (const w of [mainWindow, miniWindow]) {
     if (w && !w.isDestroyed()) w.webContents.send('data-changed');
   }
+  // Ohne Fenster ist die Sprechblase am Symbol die einzige Rückmeldung
+  aktualisiereTray();
 }
 
 // ---- Automatische Updates (GitHub Releases) ----
@@ -409,8 +535,12 @@ function setupTermine() {
 }
 
 app.on('before-quit', () => {
+  // Ab hier ist Schließen wirklich Beenden – auch das Update, das die App zum
+  // Neustart auffordert, käme sonst am versteckten Fenster nicht vorbei.
+  beendenGewollt = true;
   if (terminTimer) clearInterval(terminTimer);
   globalShortcut.unregisterAll();
+  entferneTray();
 });
 
 // Ist die Automatik abgeschaltet, darf nichts ungefragt geladen und nichts
@@ -502,6 +632,9 @@ app.whenReady().then(() => {
 
   backupData('Programmstart');
   createWindow();
+  // Das Symbol gehört zur eingeschalteten Einstellung, nicht erst zum
+  // Schließen: nur so ist vorher zu sehen, dass es die App weiterhin gibt.
+  if (store.getSettings().trayOnClose) zeigeTray();
   setupUpdater();
   setupTermine();
   // Ein belegtes Kürzel muss sichtbar werden – sonst hält der Nutzer es
@@ -517,12 +650,10 @@ app.whenReady().then(() => {
   }
 
 
-  app.on('second-instance', () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    }
-  });
+  // Ein zweiter Start holt die laufende Instanz nach vorn. Versteckt im
+  // Infobereich genügt focus() nicht – das Fenster muss erst wieder sichtbar
+  // werden, sonst scheint der Doppelklick auf die Verknüpfung wirkungslos.
+  app.on('second-instance', () => { zeigeHauptfenster(); });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -537,6 +668,7 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+
 
 // Macht aus einem Vorschlagsnamen (z. B. Projektname) einen gültigen Dateinamen.
 // Verhindert, dass Zeichen wie \ / : * ? " < > | aus dem Renderer einen Pfad
@@ -611,6 +743,13 @@ ipcMain.handle('updateSettings', (_e, patch) => mutate(() => {
     const an = updaterModus();
     updateLog('Automatische Updates: ' + (an ? 'ein' : 'aus'));
   }
+  // Das Symbol folgt der Einstellung sofort – sonst bliebe unklar, ob sie wirkt
+  if (patch && patch.trayOnClose !== undefined) {
+    if (settings.trayOnClose) zeigeTray(); else entferneTray();
+  }
+  // Sprache und Mini-Einstellung stehen im Tray-Menü; einmal neu aufbauen ist
+  // billiger als zu unterscheiden, welche Änderung es betrifft.
+  aktualisiereTray();
   // Die Fensterleiste zeichnet Windows, nicht die Oberfläche – beim
   // Designwechsel muss sie hier nachgezogen werden.
   if (patch && patch.theme !== undefined && mainWindow && !mainWindow.isDestroyed()) {
@@ -682,6 +821,63 @@ ipcMain.handle('installUpdate', () => {
 
 // Hauptfenster aus dem Mini-Bedienfeld hervorholen
 ipcMain.handle('showMainWindow', () => wrap(() => { zeigeHauptfenster(); return true; }));
+
+// Das X im Mini-Bedienfeld.
+// Läuft die App im Infobereich weiter, ist das nur ein Ausblenden – eine
+// laufende Erfassung tickt weiter, es gibt nichts zu fragen. Ohne diese
+// Einstellung beendet das X die App, und dann muss eine laufende Erfassung zur
+// Sprache kommen: sonst endet der Arbeitstag unbemerkt ohne „Gehen" und die
+// Sitzung zählt bis zum nächsten Start weiter.
+ipcMain.handle('miniClose', async () => {
+  if (store.getSettings().trayOnClose) {
+    zeigeTray();
+    if (tray) {
+      closeMini();
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
+      trayHinweis();
+      return { ok: true, data: 'tray' };
+    }
+    // Kein Symbol möglich: weiter wie ohne die Einstellung
+  }
+
+  const offen = store.getOpenSession();
+  if (!offen) { beendeApp(); return { ok: true, data: 'quit' }; }
+
+  // Das Mini-Feld liegt über allen Fenstern und würde die Rückfrage verdecken
+  const mini = miniWindow && !miniWindow.isDestroyed() ? miniWindow : null;
+  if (mini) mini.setAlwaysOnTop(false);
+  const wiederNachOben = () => {
+    if (miniWindow && !miniWindow.isDestroyed()) miniWindow.setAlwaysOnTop(true, 'floating');
+  };
+
+  const optionen = {
+    type: 'question',
+    buttons: [t('quit.stopClose'), t('quit.keepClose'), t('conf.cancel')],
+    defaultId: 0,
+    cancelId: 2,
+    noLink: true,
+    title: t('quit.title'),
+    message: t('quit.message'),
+    detail: t('quit.detail'),
+  };
+  const eltern = mini || (mainWindow && !mainWindow.isDestroyed() ? mainWindow : null);
+  const { response } = eltern
+    ? await dialog.showMessageBox(eltern, optionen)
+    : await dialog.showMessageBox(optionen);
+
+  if (response === 2) { wiederNachOben(); return { ok: true, data: 'cancel' }; }
+  if (response === 0) {
+    try {
+      store.clockOut();
+      broadcastChanged();
+    } catch (e) {
+      wiederNachOben();
+      return { ok: false, error: e.message };
+    }
+  }
+  beendeApp();
+  return { ok: true, data: response === 0 ? 'clockout' : 'quit' };
+});
 
 // Tastenkürzel nach einer Änderung neu setzen
 ipcMain.handle('applyHotkey', () => setzeHotkey());

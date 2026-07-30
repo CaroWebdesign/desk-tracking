@@ -507,10 +507,21 @@ assert.strictEqual(hk.getSettings().miniEnabled, false, 'Mini-Feld abschaltbar')
 assert.strictEqual(hk.getSettings().miniPosition, 'bl', 'Ecke änderbar');
 assert.throws(() => hk.updateSettings({ miniPosition: 'oben' }), /Position/, 'unbekannte Ecke -> Fehler');
 
+// 67a) Weiterlaufen im Infobereich: aus, bis es jemand einschaltet. Ein
+// Fenster, das sich beim Schließen nicht schließt, darf keine Überraschung
+// sein – deshalb ist die Voreinstellung hier ausdrücklich geprüft.
+assert.strictEqual(hk.getSettings().trayOnClose, false, 'Infobereich voreingestellt aus');
+hk.updateSettings({ trayOnClose: true });
+assert.strictEqual(hk.getSettings().trayOnClose, true, 'Infobereich einschaltbar');
+hk.updateSettings({ trayOnClose: 0 });
+assert.strictEqual(hk.getSettings().trayOnClose, false, 'unscharfe Werte werden zu true/false');
+hk.updateSettings({ trayOnClose: true });
+
 // 68) Alle Einstellungen überstehen einen Neustart
 const hk2 = new Store(dir7);
 assert.strictEqual(hk2.getSettings().hotkey, 'Control+Shift+Space', 'Kürzel persistiert');
 assert.strictEqual(hk2.getSettings().miniPosition, 'bl', 'Ecke persistiert');
+assert.strictEqual(hk2.getSettings().trayOnClose, true, 'Infobereich persistiert');
 
 // ---- Erinnerungs-Zeitrechnung (ohne Electron testbar) ----
 const t = (datum, zeit) => ({ id: 'x', date: datum, time: zeit });

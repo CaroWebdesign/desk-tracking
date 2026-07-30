@@ -19,6 +19,10 @@ const DEFAULT_SETTINGS = {
   hotkey: 'Control+Shift+T',
   miniEnabled: true,      // kleines Bedienfeld, wenn das Fenster minimiert ist
   miniPosition: 'br',     // 'br' = unten rechts, 'bl' = unten links
+  // Schließen beendet die App nicht, sie läuft als Symbol im Infobereich der
+  // Taskleiste weiter (wie OneDrive). Standard „aus": ein Fenster, das sich
+  // beim Schließen nicht schließt, überrascht – wer es will, schaltet es ein.
+  trayOnClose: false,
   language: 'de',         // Sprache der Oberfläche
   dateFormat: 'dd.MM.yyyy', // Darstellung von Datumsangaben
   shortYear: false,       // Jahr zweistellig statt vierstellig
@@ -629,6 +633,7 @@ class Store {
     if (p.hotkeyEnabled !== undefined) next.hotkeyEnabled = !!p.hotkeyEnabled;
     if (p.hotkey !== undefined) next.hotkey = normHotkey(p.hotkey);
     if (p.miniEnabled !== undefined) next.miniEnabled = !!p.miniEnabled;
+    if (p.trayOnClose !== undefined) next.trayOnClose = !!p.trayOnClose;
     if (p.miniPosition !== undefined) {
       if (!MINI_POSITIONS.includes(p.miniPosition)) throw new Error('Unbekannte Position.');
       next.miniPosition = p.miniPosition;

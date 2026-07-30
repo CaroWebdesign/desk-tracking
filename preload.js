@@ -58,6 +58,8 @@ contextBridge.exposeInMainWorld('api', {
 
   // Fenster und Tastenkürzel
   showMainWindow: () => ipcRenderer.invoke('showMainWindow'),
+  // X im Mini-Bedienfeld: je nach Einstellung ausblenden oder App beenden
+  miniClose: () => ipcRenderer.invoke('miniClose'),
   downloadUpdate: () => ipcRenderer.invoke('downloadUpdate'),
   applyHotkey: () => ipcRenderer.invoke('applyHotkey'),
   suspendHotkey: () => ipcRenderer.invoke('suspendHotkey'),

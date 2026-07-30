@@ -37,6 +37,7 @@ Die Oberfläche gibt es in Hell und Dunkel und in sechs Sprachen.
 | 📊 **Dashboard** | Stunden und Umsatz je Projekt, Soll/Ist-Saldo, Monatsvergleich. |
 | 📄 **Export** | CSV, PDF und Drucken — pro Monat oder pro Projekt. |
 | ⌨️ **Schnellzugriff** | Tastenkürzel und ein Mini-Bedienfeld für die Ecke des Bildschirms. |
+| 🫥 **Läuft im Hintergrund** | Auf Wunsch beendet Schließen die App nicht: sie bleibt als Symbol neben der Uhr. |
 | 🌍 **Sechs Sprachen** | Deutsch, Englisch, Französisch, Spanisch, Japanisch, Chinesisch. |
 | 🔄 **Updates** | Neue Versionen laden sich selbst — abschaltbar, wenn du den Zeitpunkt selbst bestimmen willst. |
 
@@ -274,7 +275,12 @@ sekündlich weiterläuft. Darunter die Projektwahl und drei Knöpfe: **Kommen**,
 „Kommen" nicht noch einmal drücken.
 
 Der Pfeil oben rechts holt das große Fenster zurück, dabei verschwindet das kleine.
-Verschieben kannst du es an der oberen Kante.
+Daneben liegt ein **×**. Was es tut, hängt davon ab, ob die App im Infobereich weiterlaufen
+darf (siehe [nächster Abschnitt](#beim-schließen-im-hintergrund-weiterlaufen)): Ist das
+eingeschaltet, blendet das × nur aus — eine laufende Erfassung tickt weiter. Ist es
+ausgeschaltet, würde das × die App beenden; läuft dann gerade eine Erfassung, fragt sie
+vorher nach und bietet an, die Zeit noch zu stempeln und zu speichern.
+Verschieben kannst du das Feld an der oberen Kante.
 
 **Beide Fenster bleiben synchron.** Was du im Mini-Feld stempelst, steht sofort auch in
 der Auswertung — und umgekehrt. Es gibt keinen zweiten Datenstand, der auseinanderlaufen
@@ -283,6 +289,30 @@ könnte.
 In den Einstellungen legst du fest, ob das Feld überhaupt erscheinen soll und in welcher
 Ecke: **unten links** oder **unten rechts**. Über *Jetzt ansehen* minimiert sich die App
 einmal, damit du das Ergebnis gleich siehst.
+
+---
+
+## Beim Schließen im Hintergrund weiterlaufen
+
+Normalerweise beendet das Kreuz oben rechts die App. Wer den ganzen Tag stempelt, will das
+meistens nicht — ein versehentliches Schließen, und die Uhr ist weg.
+
+Unter *Einstellungen → Schnellzugriff → Beim Schließen* schaltest du deshalb **Im
+Infobereich weiterlaufen** ein. Danach beendet das Schließen die App nicht mehr: sie läuft
+weiter und zeigt ein Symbol im Infobereich der Taskleiste, dort, wo auch Uhr, Lautstärke
+und WLAN sitzen — wie OneDrive es macht.
+
+- Eine **laufende Erfassung zählt weiter**. Nichts geht verloren, nichts wird beendet.
+- Ein **Klick auf das Symbol** holt das Fenster zurück.
+- Die **rechte Maustaste** öffnet ein kleines Menü: aktueller Status, Fenster öffnen,
+  Mini-Bedienfeld zeigen und *Beenden*. Erst darüber ist die App wirklich zu.
+- Fährst du mit der Maus über das Symbol, steht der Status in der Sprechblase.
+
+Das Symbol erscheint, sobald die Einstellung an ist — nicht erst beim Schließen. So siehst
+du gleich, wohin das Fenster verschwinden wird. Beim ersten Schließen sagt dir zusätzlich
+eine Benachrichtigung, dass die App weiterläuft.
+
+Ausgeschaltet bleibt alles beim Alten: Schließen beendet die App.
 
 ---
 
@@ -312,7 +342,7 @@ Sprache, Datumsformat und der Schalter **Jahr abkürzen**, samt Beispielfeld. Si
 
 ![Einstellungen – Tastenkürzel, Mini-Bedienfeld und Erinnerungen](docs/bilder/einstellungen-schnellzugriff.webp)
 
-Drei Funktionen, die dir das Suchen des Fensters ersparen:
+Vier Funktionen, die dir das Suchen des Fensters ersparen:
 
 **Tastenkürzel** — holt Desk Tracking aus jedem Programm nach vorn, ein zweiter Druck legt
 es wieder ab. Voreingestellt ist `Strg + Umschalt + T`, bewusst mit Umschalt, damit
@@ -323,6 +353,10 @@ ein Kürzel von einem anderen Programm belegt, sagt sie das und behält das alte
 
 **Mini-Bedienfeld** — ein- oder ausschalten und die Ecke wählen. Siehe
 [oben](#das-mini-bedienfeld).
+
+**Beim Schließen** — ob das Schließen des Fensters die App beendet oder sie im Infobereich
+der Taskleiste weiterlaufen lässt. Siehe
+[oben](#beim-schließen-im-hintergrund-weiterlaufen).
 
 **Erinnerungen** — ob Termine gemeldet werden und wie früh: pünktlich, 5 bis 30 Minuten
 oder eine Stunde vorher. *Benachrichtigung testen* zeigt dir sofort, wie das aussieht.
