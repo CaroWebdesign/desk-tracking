@@ -10,6 +10,30 @@
 
 const CHANGELOG = [
   {
+    version: '1.8.1',
+    datum: '2026-07-30',
+    punkte: {
+      de: [
+        'Die Einstellungen unter „Schnellzugriff" sind jetzt in Tastenkürzel, Mini-Bedienfeld und Erinnerungen unterteilt – vorher liefen die drei Bereiche ohne Trennung ineinander.',
+      ],
+      en: [
+        'The settings under “Quick access” are now split into keyboard shortcut, mini panel and reminders – the three areas used to run together without separation.',
+      ],
+      fr: [
+        'Les réglages sous « Accès rapide » sont désormais séparés en raccourci clavier, mini-panneau et rappels – les trois zones se confondaient auparavant.',
+      ],
+      es: [
+        'Los ajustes en «Acceso rápido» ahora se dividen en atajo de teclado, panel reducido y recordatorios – antes las tres áreas se mezclaban sin separación.',
+      ],
+      ja: [
+        '「クイックアクセス」の設定をショートカット・ミニパネル・リマインダーに区切りました。これまでは三つの領域が区切りなく続いていました。',
+      ],
+      zh: [
+        '“快速访问”中的设置现已分为快捷键、迷你面板与提醒三部分 – 此前三个区域之间没有分隔。',
+      ],
+    },
+  },
+  {
     version: '1.8.0',
     datum: '2026-07-30',
     punkte: {

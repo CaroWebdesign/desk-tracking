@@ -483,7 +483,8 @@ app.whenReady().then(() => {
   backupData('Programmstart');
   createWindow();
   setupUpdater();
-  setupTermine();  // Ein belegtes Kürzel muss sichtbar werden – sonst hält der Nutzer es
+  setupTermine();
+  // Ein belegtes Kürzel muss sichtbar werden – sonst hält der Nutzer es
   // für aktiv, obwohl es ins Leere geht.
   const hk = setzeHotkey();
   if (!hk.ok) {

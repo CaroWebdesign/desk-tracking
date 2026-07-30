@@ -12,6 +12,8 @@ und ein Mini-Bedienfeld für den Schnellzugriff.
 [Herunterladen](https://github.com/CaroWebAgentur/desk-tracking/releases/latest) ·
 [Installieren](#installieren) ·
 [So arbeitest du damit](#so-arbeitest-du-damit) ·
+[Mini-Bedienfeld](#das-mini-bedienfeld) ·
+[Einstellungen](#die-einstellungen-im-überblick) ·
 [Wo deine Zeiten liegen](#wo-deine-zeiten-gespeichert-sind)
 
 </div>
@@ -258,28 +260,86 @@ allen Exporten. Monats- und Wochentagsnamen erscheinen in der gewählten Sprache
 
 ---
 
-## Schnell hin und her
+## Das Mini-Bedienfeld
 
-Zwei Wege, um beim Arbeiten nicht ständig das Fenster zu suchen — beide unter
-**Einstellungen** einzuschalten:
+Minimierst du das Fenster, bleibt die Uhr in Sichtweite: In der Ecke des Bildschirms
+erscheint ein kleines Feld über allen anderen Fenstern.
 
-![Einstellungen – Arbeitszeit, Sprache, Tastenkürzel und Mini-Bedienfeld](docs/bilder/einstellungen.webp)
+<img src="docs/bilder/mini-bedienfeld.webp" alt="Das Mini-Bedienfeld schwebt über dem Desktop, unten rechts neben der Uhr" width="420" />
 
-Das **Tastenkürzel** holt Desk Tracking aus jedem Programm nach vorn, ein zweiter Druck
-legt es wieder ab. Voreingestellt ist `Strg + Umschalt + T` — bewusst mit Umschalt, damit
+Darin steht links der Status mit farbigem Punkt — grün heißt „läuft", gelb „in Pause",
+grau „nicht eingestempelt" — dahinter das Projekt und rechts die heute erfasste Zeit, die
+sekündlich weiterläuft. Darunter die Projektwahl und drei Knöpfe: **Kommen**, **Pause** und
+**Gehen**. Was gerade nicht möglich ist, ist ausgegraut; läuft eine Sitzung, lässt sich
+„Kommen" nicht noch einmal drücken.
+
+Der Pfeil oben rechts holt das große Fenster zurück, dabei verschwindet das kleine.
+Verschieben kannst du es an der oberen Kante.
+
+**Beide Fenster bleiben synchron.** Was du im Mini-Feld stempelst, steht sofort auch in
+der Auswertung — und umgekehrt. Es gibt keinen zweiten Datenstand, der auseinanderlaufen
+könnte.
+
+In den Einstellungen legst du fest, ob das Feld überhaupt erscheinen soll und in welcher
+Ecke: **unten links** oder **unten rechts**. Über *Jetzt ansehen* minimiert sich die App
+einmal, damit du das Ergebnis gleich siehst.
+
+---
+
+## Die Einstellungen im Überblick
+
+Sechs Karten, von oben nach unten. Jede hat ihren eigenen **Speichern**-Knopf — Änderungen
+gelten erst danach, du kannst also gefahrlos herumprobieren.
+
+![Einstellungen – Arbeitszeit sowie Datum und Sprache](docs/bilder/einstellungen.webp)
+
+### Arbeitszeit
+
+**Tagessoll** und **Arbeitstage pro Woche** bestimmen den Soll/Ist-Saldo im Dashboard und
+die Einfärbung im Kalender. Trägst du 8 Stunden und 5 Tage ein, rechnet die App mit 40
+Stunden pro Woche.
+
+**Zeiten runden** betrifft ausschließlich die *Anzeige*: Bei 15 Minuten wird aus 07:52 ein
+07:45. Gespeichert bleiben immer die exakten Zeiten — du kannst die Rundung jederzeit
+ändern oder abschalten, ohne etwas zu verlieren.
+
+### Datum und Sprache
+
+Sprache, Datumsformat und der Schalter **Jahr abkürzen**, samt Beispielfeld. Siehe
+[Sprache und Datumsformat](#sprache-und-datumsformat) weiter oben.
+
+### Schnellzugriff
+
+![Einstellungen – Tastenkürzel, Mini-Bedienfeld und Erinnerungen](docs/bilder/einstellungen-schnellzugriff.webp)
+
+Drei Funktionen, die dir das Suchen des Fensters ersparen:
+
+**Tastenkürzel** — holt Desk Tracking aus jedem Programm nach vorn, ein zweiter Druck legt
+es wieder ab. Voreingestellt ist `Strg + Umschalt + T`, bewusst mit Umschalt, damit
 Browsern nicht das „neuer Tab" weggenommen wird. Zum Ändern klickst du in das Feld und
-drückst die gewünschte Kombination. Kombinationen, die Windows selbst braucht (`Alt+F4`,
-`Alt+Tab`, `Strg+Alt+Entf`), lehnt die App ab. Ist ein Kürzel von einem anderen Programm
-belegt, sagt sie das und behält das alte.
+drückst die gewünschte Kombination — sie erscheint direkt lesbar im Feld. Kombinationen,
+die Windows selbst braucht (`Alt+F4`, `Alt+Tab`, `Strg+Alt+Entf`), lehnt die App ab. Ist
+ein Kürzel von einem anderen Programm belegt, sagt sie das und behält das alte.
 
-Das **Mini-Bedienfeld** erscheint, sobald du das Fenster minimierst: ein kleines Feld über
-allen anderen Fenstern, unten rechts oder links. Darin siehst du Status und heutige Zeit
-und kannst stempeln, Pause machen und das Projekt wechseln — ohne die App zu öffnen.
-Verschieben kannst du es am oberen Rand. Über den Pfeil rechts oben holst du das große
-Fenster zurück.
+**Mini-Bedienfeld** — ein- oder ausschalten und die Ecke wählen. Siehe
+[oben](#das-mini-bedienfeld).
 
-Beide Fenster bleiben synchron: Was du im Mini-Feld stempelst, steht sofort auch in der
-Auswertung, und umgekehrt.
+**Erinnerungen** — ob Termine gemeldet werden und wie früh: pünktlich, 5 bis 30 Minuten
+oder eine Stunde vorher. *Benachrichtigung testen* zeigt dir sofort, wie das aussieht.
+
+### Darstellung, Updates und Datenspeicher
+
+![Einstellungen – Darstellung, Updates und Datenspeicher](docs/bilder/einstellungen-updates.webp)
+
+**Darstellung** — hell oder dunkel, mit Vorschaubildern. Dasselbe erreicht die Sonne oben
+in der Seitenleiste.
+
+**Updates** — die installierte Version, ein Knopf zum Suchen und **„Was ist neu?"** mit den
+Änderungen der letzten Versionen. Findet die App ein Update, lädt sie es im Hintergrund und
+zeigt einen Balken; installiert wird beim nächsten Schließen.
+
+**Datenspeicher** — der vollständige Pfad zu deiner `times.json` und ein Knopf, der den
+Ordner im Explorer öffnet. Praktisch, wenn du die Datei sichern willst.
 
 ---
 
@@ -391,9 +451,11 @@ Die Screenshots in dieser Datei zeigen Beispieldaten, keine echten Projekte.
 <div align="center">
 <br />
 
-**Entwickelt von [Caro WebAgentur](https://github.com/CaroWebAgentur)**
+**Entwickelt von [Caro WebAgentur](https://caro-webagentur.de)**
 
 Webdesign und Individualsoftware aus einer Hand.
+
+[caro-webagentur.de](https://caro-webagentur.de) · [GitHub](https://github.com/CaroWebAgentur)
 
 <sub>MIT-Lizenz · © 2026 Caro WebAgentur</sub>
 

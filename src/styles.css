@@ -1392,3 +1392,21 @@ textarea::-webkit-scrollbar-thumb { border-width: 2px; }
   border-radius: 50%;
   background: var(--dim);
 }
+/* Zwischenüberschrift innerhalb einer Einstellungskarte. „Schnellzugriff"
+   fasst drei Funktionen zusammen – Kürzel, Mini-Feld, Erinnerungen –, die
+   ohne Trennung ineinanderliefen und schwer auseinanderzuhalten waren. */
+.set-sub {
+  margin: 22px 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--txt);
+  display: flex; align-items: center; gap: 10px;
+}
+.set-sub::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+/* Die erste Zwischenüberschrift folgt direkt auf den Kartentitel */
+.card h2 + .set-sub { margin-top: 4px; }

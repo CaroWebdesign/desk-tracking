@@ -1,6 +1,6 @@
 {
   "name": "desk-tracking",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Desk Tracking – einfache Zeiterfassung als Windows-Desktop-App",
   "main": "main.js",
   "scripts": {
