@@ -10,6 +10,42 @@
 
 const CHANGELOG = [
   {
+    version: '1.9.0',
+    datum: '2026-07-30',
+    punkte: {
+      de: [
+        'Automatische Updates lassen sich abschalten – unter „Einstellungen → Updates".',
+        'Abgeschaltet nimmt das Programm von sich aus keine Verbindung auf: Du suchst selbst und entscheidest, wann geladen und installiert wird.',
+        'Wird dabei eine neuere Version gefunden, erscheint ein Knopf „Herunterladen" statt eines Downloads im Hintergrund.',
+      ],
+      en: [
+        'Automatic updates can be switched off – under “Settings → Updates”.',
+        'Switched off, the program makes no connection on its own: you search yourself and decide when to download and install.',
+        'If a newer version is found that way, a “Download” button appears instead of a background download.',
+      ],
+      fr: [
+        'Les mises à jour automatiques peuvent être désactivées – sous « Réglages → Mises à jour ».',
+        'Désactivées, le programme n’établit aucune connexion de lui-même : vous cherchez vous-même et décidez du moment.',
+        'Si une version plus récente est trouvée, un bouton « Télécharger » apparaît au lieu d’un téléchargement en arrière-plan.',
+      ],
+      es: [
+        'Las actualizaciones automáticas se pueden desactivar – en «Ajustes → Actualizaciones».',
+        'Desactivadas, el programa no establece ninguna conexión por su cuenta: buscas tú mismo y decides cuándo.',
+        'Si se encuentra una versión más nueva, aparece un botón «Descargar» en vez de una descarga en segundo plano.',
+      ],
+      ja: [
+        '自動更新を無効にできます（「設定 → 更新」）。',
+        '無効にすると、プログラムは自分から通信しません。確認も、取得と適用のタイミングも、あなたが決めます。',
+        '新しいバージョンが見つかった場合は、背後での取得ではなく「ダウンロード」ボタンが表示されます。',
+      ],
+      zh: [
+        '可以关闭自动更新 – 在“设置 → 更新”中。',
+        '关闭后，程序不会自行联网：由你自己检查，并决定何时下载与安装。',
+        '若发现新版本，会显示“下载”按钮，而不是在后台下载。',
+      ],
+    },
+  },
+  {
     version: '1.8.1',
     datum: '2026-07-30',
     punkte: {

@@ -58,6 +58,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Fenster und Tastenkürzel
   showMainWindow: () => ipcRenderer.invoke('showMainWindow'),
+  downloadUpdate: () => ipcRenderer.invoke('downloadUpdate'),
   applyHotkey: () => ipcRenderer.invoke('applyHotkey'),
   suspendHotkey: () => ipcRenderer.invoke('suspendHotkey'),
   previewMini: () => ipcRenderer.invoke('previewMini'),

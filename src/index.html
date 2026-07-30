@@ -572,10 +572,23 @@
               <button id="btnCheckUpdate" class="btn btn-ghost">
                 <svg class="ico"><use href="#i-refresh"/></svg><span data-i18n="set.checkUpdate">Nach Updates suchen</span>
               </button>
+              <button id="btnDownloadUpdate" class="btn btn-primary" hidden>
+                <svg class="ico"><use href="#i-download"/></svg><span data-i18n="set.downloadUpdate">Herunterladen</span>
+              </button>
               <button id="btnInstallUpdate" class="btn btn-primary" data-i18n="set.installUpdate" hidden>Neu starten &amp; installieren</button>
             </div>
           </div>
           <div id="updateBar" class="update-bar" hidden><div id="updateBarFill" class="update-bar-fill"></div></div>
+          <div class="field update-auto">
+            <span data-i18n="set.autoUpdate">Automatisch nach Updates suchen</span>
+            <div class="segmented" id="setAutoUpdate">
+              <button type="button" data-value="1" data-i18n="set.on">ein</button>
+              <button type="button" data-value="0" data-i18n="set.off">aus</button>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="autoUpdateSave" class="btn btn-primary" data-i18n="set.save">Speichern</button>
+          </div>
           <p class="hint" data-i18n="set.updateHint"></p>
           <h2 data-i18n="set.storage">Datenspeicher</h2>
           <div class="update-row">

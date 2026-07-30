@@ -1755,6 +1755,7 @@ async function fillSettings() {
   setHotkeyFeld(s.hotkey || 'Control+Shift+T');
   setSegmented('setMiniEnabled', s.miniEnabled === false ? 0 : 1);
   setSegmented('setMiniPosition', s.miniPosition || 'br');
+  setSegmented('setAutoUpdate', s.autoUpdate === false ? 0 : 1);
   const info = await window.api.dataInfo();
   if (info.ok) {
     $('dataPath').textContent = info.data.file;
@@ -1848,13 +1849,19 @@ function onUpdateEvent(info) {
   if (info.state === 'downloaded') updateReady = true;
   $('btnCheckUpdate').disabled = busy;
   $('btnInstallUpdate').hidden = !updateReady;
+  // „Herunterladen" nur, solange etwas zu holen ist: nach dem Laden übernimmt
+  // der Installieren-Knopf.
+  $('btnDownloadUpdate').hidden = !(info.state === 'available' && info.selbstLaden);
   if (info.state !== 'downloading') showUpdateProgress(null);
 
   switch (info.state) {
     case 'checking':
       updateStatus(t('upd.checking')); break;
     case 'available':
-      updateStatus(t('upd.available', info.version)); break;
+      updateStatus(info.selbstLaden
+        ? t('upd.availableManual', info.version)
+        : t('upd.available', info.version));
+      break;
     case 'not-available':
       // Mit der vom Server gemeldeten Version: stimmt sie nicht mit dem
       // überein, was auf GitHub liegt, zeigt schon diese Zeile das Problem.
@@ -2307,7 +2314,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Updates / Datenspeicher
   $('btnCheckUpdate').addEventListener('click', () => window.api.checkForUpdate());
+  $('btnDownloadUpdate').addEventListener('click', () => window.api.downloadUpdate());
   $('btnInstallUpdate').addEventListener('click', () => window.api.installUpdate());
+  $('autoUpdateSave').addEventListener('click', async () => {
+    const an = getSegmented('setAutoUpdate') === '1';
+    const res = await window.api.updateSettings({ autoUpdate: an });
+    if (!res.ok) { toast(tErr(res.error), { kind: 'error' }); return; }
+    await refresh();
+    toast(t('set.autoUpdateSaved'), { kind: 'ok' });
+  });
   $('btnOpenData').addEventListener('click', () => window.api.openDataFolder());
   window.api.onUpdateEvent(onUpdateEvent);
 

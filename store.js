@@ -22,6 +22,10 @@ const DEFAULT_SETTINGS = {
   language: 'de',         // Sprache der Oberfläche
   dateFormat: 'dd.MM.yyyy', // Darstellung von Datumsangaben
   shortYear: false,       // Jahr zweistellig statt vierstellig
+  // Selbsttätig nach Updates sehen und sie im Hintergrund laden. Abschaltbar,
+  // weil in vielen Netzen ungefragte Downloads unerwünscht oder untersagt
+  // sind. Standard bleibt „an“ – wer nichts einstellt, bleibt versorgt.
+  autoUpdate: true,
 };
 
 // Verfügbare Sprachen (Oberfläche)
@@ -638,6 +642,7 @@ class Store {
       next.dateFormat = p.dateFormat;
     }
     if (p.shortYear !== undefined) next.shortYear = !!p.shortYear;
+    if (p.autoUpdate !== undefined) next.autoUpdate = !!p.autoUpdate;
     this.data.settings = next;
     // Ein reiner Designwechsel muss das Protokoll nicht füllen
     const nurTheme = Object.keys(p).length === 1 && p.theme !== undefined;

@@ -38,7 +38,7 @@ Die Oberfläche gibt es in Hell und Dunkel und in sechs Sprachen.
 | 📄 **Export** | CSV, PDF und Drucken — pro Monat oder pro Projekt. |
 | ⌨️ **Schnellzugriff** | Tastenkürzel und ein Mini-Bedienfeld für die Ecke des Bildschirms. |
 | 🌍 **Sechs Sprachen** | Deutsch, Englisch, Französisch, Spanisch, Japanisch, Chinesisch. |
-| 🔄 **Updates** | Neue Versionen laden sich selbst — deine Zeiten bleiben unberührt. |
+| 🔄 **Updates** | Neue Versionen laden sich selbst — abschaltbar, wenn du den Zeitpunkt selbst bestimmen willst. |
 
 ---
 
@@ -335,8 +335,10 @@ oder eine Stunde vorher. *Benachrichtigung testen* zeigt dir sofort, wie das aus
 in der Seitenleiste.
 
 **Updates** — die installierte Version, ein Knopf zum Suchen und **„Was ist neu?"** mit den
-Änderungen der letzten Versionen. Findet die App ein Update, lädt sie es im Hintergrund und
-zeigt einen Balken; installiert wird beim nächsten Schließen.
+Änderungen der letzten Versionen. Darunter der Schalter **Automatisch nach Updates suchen**:
+eingeschaltet lädt die App gefundene Updates im Hintergrund und installiert sie beim
+nächsten Schließen; abgeschaltet entscheidest du jeden Schritt selbst. Mehr dazu unter
+[Updates](#updates).
 
 **Datenspeicher** — der vollständige Pfad zu deiner `times.json` und ein Knopf, der den
 Ordner im Explorer öffnet. Praktisch, wenn du die Datei sichern willst.
@@ -385,11 +387,27 @@ der Stand von damals ist wieder da.
 
 ## Updates
 
-Die App prüft bei jedem Start, ob es eine neuere Version gibt, lädt sie im Hintergrund und
-installiert sie, sobald du das Programm schließt. Du musst nichts weiter tun.
+Standardmäßig prüft die App bei jedem Start, ob es eine neuere Version gibt, lädt sie im
+Hintergrund und installiert sie, sobald du das Programm schließt. Du musst nichts weiter
+tun.
 
-Unter *Einstellungen → Updates* siehst du die installierte Version, kannst von Hand nach
-Updates suchen — und unter **„Was ist neu?"** nachlesen, was sich geändert hat:
+### Automatik abschaltbar
+
+Unter *Einstellungen → Updates* gibt es den Schalter **Automatisch nach Updates suchen**.
+Steht er auf *aus*, nimmt Desk Tracking von sich aus keine Verbindung nach außen auf —
+keine Prüfung beim Start, kein Download im Hintergrund, keine stille Installation beim
+Schließen.
+
+Du behältst die volle Kontrolle über den Zeitpunkt: **Nach Updates suchen** fragt einmalig
+nach, und wird etwas gefunden, erscheint ein Knopf **Herunterladen**. Erst danach kommt
+**Neu starten & installieren**. Jeder Schritt braucht einen Klick.
+
+Das ist in Umgebungen wichtig, in denen ungefragte Downloads unerwünscht oder untersagt
+sind — etwa in Firmennetzen mit eigener Softwareverteilung. Der Standard bleibt „ein": Wer
+nichts einstellt, bleibt automatisch versorgt.
+
+Unter *Einstellungen → Updates* siehst du außerdem die installierte Version — und unter
+**„Was ist neu?"** kannst du nachlesen, was sich geändert hat:
 
 ![Änderungsliste – was sich in den letzten Versionen geändert hat](docs/bilder/changelog.webp)
 

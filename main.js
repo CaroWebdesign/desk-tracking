@@ -413,17 +413,33 @@ app.on('before-quit', () => {
   globalShortcut.unregisterAll();
 });
 
+// Ist die Automatik abgeschaltet, darf nichts ungefragt geladen und nichts
+// still installiert werden. Die Prüfung selbst bleibt möglich – nur eben auf
+// Knopfdruck. Läuft in setupUpdater und nach jeder Änderung der Einstellung.
+function updaterModus() {
+  const an = store.getSettings().autoUpdate !== false;
+  autoUpdater.autoDownload = an;
+  autoUpdater.autoInstallOnAppQuit = an;
+  return an;
+}
+
 function setupUpdater() {
-  autoUpdater.autoDownload = true;          // im Hintergrund laden
-  autoUpdater.autoInstallOnAppQuit = true;  // still beim Beenden installieren
   autoUpdater.disableDifferentialDownload = true; // ohne Signatur zuverlässiger
+  const automatik = updaterModus();
 
   autoUpdater.logger = { info: updateLog, warn: updateLog, error: updateLog, debug: () => {} };
 
   autoUpdater.on('checking-for-update', () => sendUpdate({ state: 'checking' }));
   autoUpdater.on('update-available', (i) => {
     updateVersion = i.version;
-    sendUpdate({ state: 'available', version: i.version });
+    // Ohne Automatik lädt electron-updater nicht von selbst. Die Oberfläche
+    // braucht diese Angabe, um „Herunterladen" statt eines Fortschritts-
+    // balkens anzubieten.
+    sendUpdate({
+      state: 'available',
+      version: i.version,
+      selbstLaden: autoUpdater.autoDownload === false,
+    });
   });
   // Die vom Server gemeldete Version mitschicken. Steht dort etwas anderes als
   // erwartet, ist der Fehler damit sofort sichtbar – ohne diese Angabe sieht
@@ -448,8 +464,12 @@ function setupUpdater() {
     sendUpdate({ state: 'error', message: err ? err.message : 'unbekannter Fehler' });
   });
 
-  if (app.isPackaged) {
+  // Beim Start nur suchen, wenn die Automatik an ist. Abgeschaltet heißt:
+  // keine Verbindung nach außen, solange niemand darum bittet.
+  if (app.isPackaged && automatik) {
     setTimeout(() => { autoUpdater.checkForUpdates().catch(() => {}); }, 4000);
+  } else if (!automatik) {
+    updateLog('Automatische Updates sind abgeschaltet – keine Prüfung beim Start.');
   }
 }
 
@@ -586,6 +606,11 @@ ipcMain.handle('updateBreak', (_e, id, i, s, en) => mutate(() => store.updateBre
 ipcMain.handle('deleteBreak', (_e, id, i) => mutate(() => store.deleteBreak(id, i)));
 ipcMain.handle('updateSettings', (_e, patch) => mutate(() => {
   const settings = store.updateSettings(patch);
+  // Der Updater merkt von sich aus nichts von der Änderung
+  if (patch && patch.autoUpdate !== undefined) {
+    const an = updaterModus();
+    updateLog('Automatische Updates: ' + (an ? 'ein' : 'aus'));
+  }
   // Die Fensterleiste zeichnet Windows, nicht die Oberfläche – beim
   // Designwechsel muss sie hier nachgezogen werden.
   if (patch && patch.theme !== undefined && mainWindow && !mainWindow.isDestroyed()) {
@@ -622,6 +647,19 @@ ipcMain.handle('checkForUpdate', () => {
     }
   }).catch((e) => {
     updateLog('Update-Prüfung fehlgeschlagen: ' + (e ? (e.stack || e.message) : 'unbekannt'));
+    sendUpdate({ state: 'error', message: e ? e.message : 'unbekannter Fehler' });
+  });
+  return { ok: true };
+});
+
+// Gefundenes Update von Hand laden. Nötig, wenn die Automatik aus ist:
+// electron-updater hat dann nur gemeldet, dass es etwas gibt.
+ipcMain.handle('downloadUpdate', () => {
+  if (!app.isPackaged) { sendUpdate({ state: 'dev' }); return { ok: true }; }
+  updateLog('Download von Hand angefordert');
+  sendUpdate({ state: 'downloading', percent: 0, version: updateVersion });
+  autoUpdater.downloadUpdate().catch((e) => {
+    updateLog('Download fehlgeschlagen: ' + (e ? (e.stack || e.message) : 'unbekannt'));
     sendUpdate({ state: 'error', message: e ? e.message : 'unbekannter Fehler' });
   });
   return { ok: true };

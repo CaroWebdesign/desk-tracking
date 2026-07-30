@@ -614,6 +614,51 @@ assert.strictEqual(altbestand.getSettings().dateFormat, 'dd.MM.yyyy', 'Format er
 assert.strictEqual(altbestand.getSettings().shortYear, false, 'Kurzjahr ergänzt');
 assert.strictEqual(altbestand.getSettings().targetHoursPerDay, 8, 'vorhandener Wert bleibt');
 
+// ---------- Automatische Updates abschaltbar ----------
+const dir11 = fs.mkdtempSync(path.join(os.tmpdir(), 'stempel-test11-'));
+const au = new Store(dir11);
+
+// 81) Voreinstellung: an – wer nichts einstellt, bleibt versorgt
+assert.strictEqual(au.getSettings().autoUpdate, true, 'Automatik standardmäßig an');
+
+// 82) Abschalten und wieder einschalten
+au.updateSettings({ autoUpdate: false });
+assert.strictEqual(au.getSettings().autoUpdate, false, 'Automatik abgeschaltet');
+au.updateSettings({ autoUpdate: true });
+assert.strictEqual(au.getSettings().autoUpdate, true, 'Automatik wieder an');
+
+// 83) Jeder Wahrheitswert wird übernommen
+au.updateSettings({ autoUpdate: 0 });
+assert.strictEqual(au.getSettings().autoUpdate, false, '0 wird zu false');
+au.updateSettings({ autoUpdate: 'ja' });
+assert.strictEqual(au.getSettings().autoUpdate, true, 'nichtleerer Text wird zu true');
+
+// 84) Andere Einstellungen bleiben unberührt
+au.updateSettings({ autoUpdate: false, targetHoursPerDay: 7 });
+assert.strictEqual(au.getSettings().autoUpdate, false, 'Automatik gesetzt');
+assert.strictEqual(au.getSettings().targetHoursPerDay, 7, 'Tagessoll daneben gesetzt');
+au.updateSettings({ theme: 'caro-light' });
+assert.strictEqual(au.getSettings().autoUpdate, false,
+  'Automatik überlebt eine andere Änderung');
+
+// 85) Überlebt einen Neustart
+const au2 = new Store(dir11);
+assert.strictEqual(au2.getSettings().autoUpdate, false, 'Automatik persistiert');
+
+// 86) Alte Datei ohne das Feld gilt als „an" – ein Update darf nicht
+// dadurch ausbleiben, dass die Einstellung fehlt.
+const dir12 = fs.mkdtempSync(path.join(os.tmpdir(), 'stempel-test12-'));
+fs.writeFileSync(path.join(dir12, 'times.json'), JSON.stringify({
+  sessions: [], projects: [], events: [], logs: [],
+  settings: { targetHoursPerDay: 8 },
+}));
+const altAU = new Store(dir12);
+assert.strictEqual(altAU.getSettings().autoUpdate, true,
+  'fehlendes Feld bedeutet: Automatik an');
+
+fs.rmSync(dir11, { recursive: true, force: true });
+fs.rmSync(dir12, { recursive: true, force: true });
+
 fs.rmSync(dir9, { recursive: true, force: true });
 fs.rmSync(dir10, { recursive: true, force: true });
 

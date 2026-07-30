@@ -44,6 +44,15 @@ body[data-theme="caro-light"] {
 
 * { box-sizing: border-box; }
 
+/* Das hidden-Attribut wirkt über display:none – und verliert damit gegen jede
+   Klasse, die selbst ein display setzt. Genau das passierte bei Knöpfen:
+   „.btn { display: inline-flex }" hat `hidden` ausgehebelt, weshalb
+   „Herunterladen" und „Neu starten & installieren" immer sichtbar waren,
+   obwohl gar kein Update bereitlag. Diese Regel gilt für alle Elemente;
+   weiter unten stehen noch ältere Einzelfälle (.view, .modal-overlay …), die
+   damit überflüssig, aber harmlos sind. */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   font-family: Inter, 'Segoe UI', system-ui, sans-serif;
@@ -1410,3 +1419,9 @@ textarea::-webkit-scrollbar-thumb { border-width: 2px; }
 }
 /* Die erste Zwischenüberschrift folgt direkt auf den Kartentitel */
 .card h2 + .set-sub { margin-top: 4px; }
+/* Der Schalter für die Update-Automatik sitzt unter dem Fortschrittsbalken,
+   nicht in der Kopfzeile: dort stehen die Knöpfe zum Suchen und Installieren,
+   und eine Einstellung gehört nicht zwischen Handlungen.
+   align-items, damit der Schalter seine natürliche Breite behält – als
+   Kind eines Spalten-Flex würde er sich sonst über die ganze Karte ziehen. */
+.update-auto { margin-top: 18px; align-items: flex-start; }
