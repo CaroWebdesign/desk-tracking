@@ -11,6 +11,12 @@ times*
 # Interne Anleitung – gehört nicht ins öffentliche Repository
 VEROEFFENTLICHEN.md
 
+# Vault-Anbindung – enthält Pfade, Kunden- und Projektnummern.
+CLAUDE.local.md
+
+# Persönliche Claude-Einstellungen (geteilte gehören in settings.json).
+.claude/settings.local.json
+
 shot-*.png
 screenshot-*.png
 *.log
